@@ -1,25 +1,59 @@
 package container
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"io"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/pkg/errors"
 
 	"github.com/cpuguy83/go-docker"
-	"github.com/docker/docker/api/types"
 )
 
-type ContainerLogsReadOption func(o *types.ContainerLogsOptions)
+type LogsReadOption func(*LogReadConfig)
 
-func (c *container) Logs(ctx context.Context, opts ...ContainerLogsReadOption) (io.ReadCloser, error) {
-	return Logs(ctx, c.id, opts...)
+type LogReadConfig struct {
+	ShowStdout bool
+	ShowStderr bool
+	Since      string
+	Until      string
+	Timestamps bool
+	Follow     bool
+	Tail       string
+	Details    bool
+}
+
+func (c *container) Logs(ctx context.Context, opts ...LogsReadOption) (io.ReadCloser, error) {
+	return LogsWithClient(ctx, c.client, c.id, opts...)
+}
+
+func Logs(ctx context.Context, name string, opts ...LogsReadOption) (io.ReadCloser, error) {
+	return LogsWithClient(ctx, docker.G(ctx), name, opts...)
 }
 
 // TODO: wrap the returned reader in a struct?
-// TODO: Provide helper for consuming logs, maybe like daemon/logs does with a channel of disccrete log messages?
-func Logs(ctx context.Context, name string, opts ...ContainerLogsReadOption) (io.ReadCloser, error) {
-	var cfg types.ContainerLogsOptions
+// TODO: Provide helper for consuming logs, maybe like daemon/logs does with a channel of discrete log messages?
+func LogsWithClient(ctx context.Context, client *docker.Client, name string, opts ...LogsReadOption) (io.ReadCloser, error) {
+	var cfg LogReadConfig
 	for _, o := range opts {
 		o(&cfg)
 	}
-	return docker.G(ctx).ContainerLogs(ctx, name, cfg)
+
+	withLogConfig := func(req *http.Request) error {
+		data, err := json.Marshal(&cfg)
+		if err != nil {
+			return errors.Wrap(err, "error encoding log read config")
+		}
+		req.Body = ioutil.NopCloser(bytes.NewReader(data))
+		return nil
+	}
+
+	resp, err := client.Do(ctx, http.MethodGet, "/container/"+name+"/logs", withLogConfig)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body, nil
 }

@@ -3,33 +3,33 @@ package docker
 import (
 	"context"
 
-	"github.com/docker/docker/client"
+	"github.com/cpuguy83/go-docker/transport"
 )
 
 type clientKey struct{}
 
-func WithClient(ctx context.Context, c *client.Client) context.Context {
+func WithClient(ctx context.Context, c *Client) context.Context {
 	return context.WithValue(ctx, clientKey{}, c)
 }
 
-func G(ctx context.Context) *client.Client {
+func G(ctx context.Context) *Client {
 	return GetClient(ctx)
 }
 
-func GetClient(ctx context.Context) *client.Client {
+func GetClient(ctx context.Context) *Client {
 	if c := ClientFromContext(ctx); c != nil {
 		return c
 	}
-	if c, _ := client.NewEnvClient(); c != nil {
-		return c
+	t := transport.DefaultUnixTransport()
+	return &Client{
+		Transport: t,
 	}
-	panic("nil client")
 }
 
-func ClientFromContext(ctx context.Context) *client.Client {
+func ClientFromContext(ctx context.Context) *Client {
 	c := ctx.Value(clientKey{})
 	if c != nil {
-		return c.(*client.Client)
+		return c.(*Client)
 	}
 	return nil
 }

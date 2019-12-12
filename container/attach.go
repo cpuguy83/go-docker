@@ -1,16 +1,28 @@
 package container
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"net/http"
 
 	"github.com/cpuguy83/go-docker"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/pkg/errors"
 )
 
-type AttachOption func(*types.ContainerAttachOptions)
+type AttachOption func(*AttachConfig)
+
+type AttachConfig struct {
+	Stream     bool
+	Stdin      bool
+	Stdout     bool
+	Stderr     bool
+	DetachKeys string
+	Logs       bool
+}
 
 type AttachIO interface {
 	Stdin() io.WriteCloser
@@ -19,15 +31,15 @@ type AttachIO interface {
 	Close() error
 }
 
-func WithAttachStdin(o *types.ContainerAttachOptions) {
+func WithAttachStdin(o *AttachConfig) {
 	o.Stdin = true
 }
 
-func WithAttachStdout(o *types.ContainerAttachOptions) {
+func WithAttachStdout(o *AttachConfig) {
 	o.Stdout = true
 }
 
-func WithAttachStderr(o *types.ContainerAttachOptions) {
+func WithAttachStderr(o *AttachConfig) {
 	o.Stderr = true
 }
 
@@ -36,33 +48,66 @@ func (c *container) Attach(ctx context.Context, opts ...AttachOption) (AttachIO,
 }
 
 func Attach(ctx context.Context, name string, opts ...AttachOption) (AttachIO, error) {
-	var cfg types.ContainerAttachOptions
+	return AttachWithClient(ctx, docker.G(ctx), name, opts...)
+}
+
+func AttachWithClient(ctx context.Context, client *docker.Client, name string, opts ...AttachOption) (AttachIO, error) {
+	var cfg AttachConfig
+	cfg.Stream = true
 	for _, o := range opts {
 		o(&cfg)
 	}
 
-	cfg.Stream = true
+	return handleAttach(ctx, client, name, cfg)
+}
 
-	hr, err := docker.G(ctx).ContainerAttach(ctx, name, cfg)
+func uri(format string, values ...interface{}) string {
+	return fmt.Sprintf(format, values...)
+}
+
+func handleAttach(ctx context.Context, client *docker.Client, name string, cfg AttachConfig) (retAttach *attachIO, retErr error) {
+	defer func() {
+		if retErr != nil {
+			if retAttach != nil {
+				retAttach.Close()
+			}
+		}
+	}()
+
+	withAttachRequest := func(req *http.Request) error {
+		data, err := json.Marshal(cfg)
+		if err != nil {
+			return errors.Wrap(err, "error encoding attach request")
+		}
+
+		req.Body = ioutil.NopCloser(bytes.NewReader(data))
+		return nil
+	}
+
+	rwc, err := client.DoRaw(ctx, http.MethodPost, "/containers/"+name+"/attach", withAttachRequest)
 	if err != nil {
 		return nil, err
 	}
 
 	var (
-		stdout, stderr io.ReadCloser
 		stdin          io.WriteCloser
+		stdout, stderr io.ReadCloser
 	)
 
-	info, err := Inspect(ctx, name)
-	if err != nil {
-		return nil, errors.Wrap(err, "error getting container details")
+	var isTTY bool
+	if cfg.Stdout {
+		info, err := Inspect(ctx, name)
+		if err != nil {
+			return nil, errors.Wrap(err, "error getting container details")
+		}
+		isTTY = info.Config.Tty
 	}
 
-	if info.Config.Tty {
+	if isTTY {
 		if cfg.Stdout {
 			var stdoutW io.WriteCloser
 			stdout, stdoutW = io.Pipe()
-			go io.Copy(stdoutW, hr.Reader)
+			go io.Copy(stdoutW, rwc)
 		}
 	} else {
 		// TODO: This implementation can be a little funky because stderr and stodout
@@ -78,10 +123,10 @@ func Attach(ctx context.Context, name string, opts ...AttachOption) (AttachIO, e
 		if cfg.Stderr {
 			stderr, stderrW = io.Pipe()
 		}
-		go stdcopy.StdCopy(stdoutW, stderrW, hr.Reader)
+		go stdCopy(stdoutW, stderrW, rwc)
 	}
 	if cfg.Stdin {
-		stdin = hr.Conn
+		stdin = rwc
 	}
 
 	return &attachIO{stdin: stdin, stdout: stdout, stderr: stderr}, nil

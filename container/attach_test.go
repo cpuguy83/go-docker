@@ -7,12 +7,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cpuguy83/go-docker"
+	"github.com/cpuguy83/go-docker/transport"
+
 	"gotest.tools/assert"
 	"gotest.tools/assert/cmp"
 )
 
 func TestAttachTTY(t *testing.T) {
-	ctx := context.Background()
+	client := &docker.Client{Transport: transport.DefaultUnixTransport()}
+	ctx := docker.WithClient(context.Background(), client)
 
 	c, err := Run(ctx,
 		WithRunCreateOption(WithCreateImage("busybox:latest")),

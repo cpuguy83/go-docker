@@ -2,6 +2,12 @@ package container
 
 import (
 	"context"
+	"encoding/json"
+	"io"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/pkg/errors"
 
 	"github.com/cpuguy83/go-docker"
 	containertypes "github.com/docker/docker/api/types/container"
@@ -75,6 +81,10 @@ func WithCreateAttachStderr(cfg *CreateConfig) {
 }
 
 func Create(ctx context.Context, opts ...CreateOption) (Container, error) {
+	return CreateWithClient(ctx, docker.G(ctx), opts...)
+}
+
+func CreateWithClient(ctx context.Context, client *docker.Client, opts ...CreateOption) (Container, error) {
 	c := CreateConfig{
 		Config:        &containertypes.Config{},
 		HostConfig:    &containertypes.HostConfig{},
@@ -83,11 +93,35 @@ func Create(ctx context.Context, opts ...CreateOption) (Container, error) {
 	for _, o := range opts {
 		o(&c)
 	}
+	withName := func(*http.Request) error { return nil }
+	if c.Name != "" {
+		docker.WithQueryValue("name", c.Name)
+	}
 
-	resp, err := docker.G(ctx).ContainerCreate(ctx, c.Config, c.HostConfig, c.NetworkConfig, c.Name)
+	resp, err := client.Do(ctx, http.MethodPost, "/containers/create", docker.WithJSONBody(c), withName)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
-	return &container{id: resp.ID}, nil
+	body := io.LimitReader(resp.Body, 64*1024)
+
+	data, err := ioutil.ReadAll(body)
+	if err != nil {
+		return nil, errors.Wrap(err, "error reading response body")
+	}
+
+	var cc containerCreateResponse
+	if err := json.Unmarshal(data, &cc); err != nil {
+		return nil, errors.Wrap(err, "error decoding container create response")
+	}
+
+	if cc.ID == "" {
+		return nil, errors.Errorf("empty ID in response: %v", string(data))
+	}
+	return &container{id: cc.ID, client: client}, nil
+}
+
+type containerCreateResponse struct {
+	ID string `json:"Id"`
 }
