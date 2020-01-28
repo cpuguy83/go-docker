@@ -43,5 +43,8 @@ func Stop(ctx context.Context, name string, opts ...StopOption) error {
 }
 
 func (c *container) Stop(ctx context.Context, opts ...StopOption) error {
-	return Stop(ctx, c.id, opts...)
+	if err := Stop(ctx, c.id, opts...); err != nil {
+		return err
+	}
+	return nil
 }

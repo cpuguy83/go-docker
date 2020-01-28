@@ -1,13 +1,11 @@
 package container
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/cpuguy83/go-docker"
 	"github.com/pkg/errors"
@@ -44,7 +42,11 @@ func WithAttachStderr(o *AttachConfig) {
 }
 
 func (c *container) Attach(ctx context.Context, opts ...AttachOption) (AttachIO, error) {
-	return Attach(ctx, c.id, opts...)
+	attach, err := Attach(ctx, c.id, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return attach, nil
 }
 
 func Attach(ctx context.Context, name string, opts ...AttachOption) (AttachIO, error) {
@@ -75,12 +77,13 @@ func handleAttach(ctx context.Context, client *docker.Client, name string, cfg A
 	}()
 
 	withAttachRequest := func(req *http.Request) error {
-		data, err := json.Marshal(cfg)
-		if err != nil {
-			return errors.Wrap(err, "error encoding attach request")
-		}
-
-		req.Body = ioutil.NopCloser(bytes.NewReader(data))
+		q := req.URL.Query()
+		q.Add("stdin", strconv.FormatBool(cfg.Stdin))
+		q.Add("stdout", strconv.FormatBool(cfg.Stdout))
+		q.Add("stderr", strconv.FormatBool(cfg.Stderr))
+		q.Add("logs", strconv.FormatBool(cfg.Logs))
+		q.Add("stream", strconv.FormatBool(cfg.Stream))
+		req.URL.RawQuery = q.Encode()
 		return nil
 	}
 

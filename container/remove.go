@@ -1,13 +1,9 @@
 package container
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
-
-	"github.com/pkg/errors"
+	"strconv"
 
 	"github.com/cpuguy83/go-docker"
 )
@@ -31,12 +27,11 @@ func Remove(ctx context.Context, name string, opts ...RemoveOption) error {
 	}
 
 	withRemoveConfig := func(req *http.Request) error {
-		data, err := json.Marshal(cfg)
-		if err != nil {
-			return errors.Wrap(err, "error marshaling container remove config")
-		}
-
-		req.Body = ioutil.NopCloser(bytes.NewReader(data))
+		q := req.URL.Query()
+		q.Add("force", strconv.FormatBool(cfg.Force))
+		q.Add("link", strconv.FormatBool(cfg.RemoveLinks))
+		q.Add("v", strconv.FormatBool(cfg.RemoveVolumes))
+		req.URL.RawQuery = q.Encode()
 		return nil
 	}
 

@@ -1,10 +1,7 @@
 package container
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/docker/docker/errdefs"
@@ -40,11 +37,12 @@ func StartWithClient(ctx context.Context, client *docker.Client, name string, op
 	}
 
 	withStartConfig := func(req *http.Request) error {
-		data, err := json.Marshal(cfg)
-		if err != nil {
-			return errors.Wrap(err, "error marshaling start config")
+		if cfg.CheckpointID != "" {
+			req.Form.Set("checkpoint", cfg.CheckpointID)
 		}
-		req.Body = ioutil.NopCloser(bytes.NewReader(data))
+		if cfg.CheckpointDir != "" {
+			req.Form.Set("checkpoint-dir", cfg.CheckpointID)
+		}
 		return nil
 	}
 

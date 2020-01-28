@@ -7,11 +7,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/pkg/errors"
-
 	"github.com/cpuguy83/go-docker"
 	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
+	"github.com/pkg/errors"
 )
 
 type CreateConfig struct {
@@ -97,8 +96,9 @@ func CreateWithClient(ctx context.Context, client *docker.Client, opts ...Create
 	if c.Name != "" {
 		docker.WithQueryValue("name", c.Name)
 	}
+	cw := &containerConfigWrapper{Config: c.Config, HostConfig: c.HostConfig, NetworkingConfig: c.NetworkConfig}
 
-	resp, err := client.Do(ctx, http.MethodPost, "/containers/create", docker.WithJSONBody(c), withName)
+	resp, err := client.Do(ctx, http.MethodPost, "/containers/create", docker.WithJSONBody(cw), withName)
 	if err != nil {
 		return nil, err
 	}
@@ -120,6 +120,12 @@ func CreateWithClient(ctx context.Context, client *docker.Client, opts ...Create
 		return nil, errors.Errorf("empty ID in response: %v", string(data))
 	}
 	return &container{id: cc.ID, client: client}, nil
+}
+
+type containerConfigWrapper struct {
+	*containertypes.Config
+	HostConfig       *containertypes.HostConfig
+	NetworkingConfig *network.NetworkingConfig
 }
 
 type containerCreateResponse struct {

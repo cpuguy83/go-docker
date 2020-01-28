@@ -49,7 +49,7 @@ func (e errorResponse) Error() string {
 }
 
 func checkResponseError(resp *http.Response) error {
-	if resp.StatusCode >= 200 && resp.StatusCode <= 400 {
+	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
 		return nil
 	}
 
