@@ -60,7 +60,7 @@ func (t *Transport) Do(ctx context.Context, method, uri string, opts ...RequestO
 }
 
 func (t *Transport) DoRaw(ctx context.Context, method, uri string, opts ...RequestOpt) (io.ReadWriteCloser, error) {
-	req := &http.Request{}
+	req := &http.Request{Header: http.Header{}}
 	req.Method = method
 	req.URL = &url.URL{Path: uri, Host: t.host, Scheme: t.scheme}
 	req.Header.Set("Connection", "Upgrade")
