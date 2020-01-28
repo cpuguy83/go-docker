@@ -17,6 +17,7 @@ func NewTransport(t LogT, client transport.Doer) *Transport {
 type LogT interface {
 	Log(...interface{})
 	Logf(string, ...interface{})
+	Helper()
 }
 
 type Transport struct {
@@ -41,6 +42,7 @@ func wrapReader(r io.Reader, f func() error) io.ReadCloser {
 }
 
 func (t *Transport) Do(ctx context.Context, method, uri string, opts ...transport.RequestOpt) (*http.Response, error) {
+	t.t.Helper()
 	opts = append(opts, t.logRequest)
 	return t.logResponse(t.d.Do(ctx, method, uri, opts...))
 }
@@ -51,6 +53,7 @@ func (t *Transport) DoRaw(ctx context.Context, method, uri string, opts ...trans
 }
 
 func (t *Transport) logRequest(req *http.Request) error {
+	t.t.Helper()
 	t.t.Log(req.Method, req.URL.String())
 
 	if req.Header.Get("Content-Type") != "application/json" {
@@ -69,6 +72,7 @@ func (t *Transport) logRequest(req *http.Request) error {
 }
 
 func (t *Transport) logResponse(resp *http.Response, err error) (*http.Response, error) {
+	t.t.Helper()
 	t.t.Log(resp.Status, err)
 
 	if resp.Header.Get("Content-Type") != "application/json" {
