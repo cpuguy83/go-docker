@@ -3,7 +3,6 @@ package container
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -26,7 +25,7 @@ func Stop(ctx context.Context, name string, opts ...StopOption) error {
 
 	withQuery := func(req *http.Request) error {
 		if cfg.Timeout != nil {
-			q := url.Values{}
+			q := req.URL.Query()
 			q.Set("timeout", strconv.FormatFloat(cfg.Timeout.Seconds(), 'f', 0, 64))
 			req.URL.RawQuery = q.Encode()
 		}
