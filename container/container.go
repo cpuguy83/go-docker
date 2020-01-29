@@ -31,3 +31,25 @@ type container struct {
 func (c *container) ID() string {
 	return c.id
 }
+
+// NewConfig holds the options available for `New`
+type NewConfig struct {
+	Client *docker.Client
+}
+
+// NewOption is used as functional parameters to `New`
+type NewOption func(*NewConfig)
+
+// New instantiates a container object that you can interact with via the provided client.
+// New does not create any resources in docker or even hit the API.
+func New(ctx context.Context, name string, opts ...NewOption) (Container, error) {
+	var cfg NewConfig
+	for _, o := range opts {
+		o(&cfg)
+	}
+	if cfg.Client == nil {
+		cfg.Client = docker.G(ctx)
+	}
+	c := &container{id: name, client: cfg.Client}
+	return c, nil
+}
