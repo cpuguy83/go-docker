@@ -5,104 +5,93 @@ import (
 	"context"
 	"io"
 	"testing"
-	"time"
+
+	"github.com/cpuguy83/go-docker/testutils"
 
 	"github.com/cpuguy83/go-docker"
-	"github.com/cpuguy83/go-docker/transport"
-
 	"gotest.tools/assert"
 	"gotest.tools/assert/cmp"
 )
 
-func TestAttachTTY(t *testing.T) {
-	client := &docker.Client{Transport: transport.DefaultUnixTransport()}
-	ctx := docker.WithClient(context.Background(), client)
+func TestContainerAttachTTY(t *testing.T) {
+	ctx := context.Background()
+	client := docker.G(ctx)
+	client.Transport = testutils.NewTransport(t, client.Transport)
+	ctx = docker.WithClient(ctx, client)
 
-	c, err := Run(ctx,
-		WithRunCreateOption(WithCreateImage("busybox:latest")),
-		WithRunCreateOption(WithCreateTTY),
-		WithRunCreateOption(WithCreateAttachStdin),
-		WithRunCreateOption(WithCreateAttachStdout),
+	c, err := Create(ctx,
+		WithCreateImage("busybox:latest"),
+		WithCreateTTY,
+		WithCreateAttachStdin,
+		WithCreateAttachStdout,
 	)
 	assert.NilError(t, err)
 	defer Remove(ctx, c.ID(), WithRemoveForce)
 
-	attach, err := c.Attach(ctx, WithAttachStdin, WithAttachStdout)
+	stdout, err := c.StdoutPipe(ctx)
 	assert.NilError(t, err)
-	defer attach.Close()
+	defer stdout.Close()
 
-	assert.Assert(t, attach.Stdout() != nil)
-	assert.Assert(t, attach.Stderr() == nil)
-	assert.Equal(t, attach.Stderr(), nil)
+	assert.Assert(t, c.Start(ctx), "failed to start container")
 
-	buf := bytes.NewBuffer(nil)
-	ctx, cancel := context.WithCancel(ctx)
+	expected := "/ # echo hello\r\nhello\r\n/ # "
+
+	stdin, err := c.StdinPipe(ctx)
+	assert.NilError(t, err)
+	defer stdin.Close()
+
+	chErr := make(chan error, 1)
 	go func() {
-		io.CopyN(buf, attach.Stdout(), 17)
-		cancel()
+		_, err := stdin.Write([]byte("echo hello\n"))
+		chErr <- err
 	}()
 
-	n, err := attach.Stdin().Write([]byte("echo hello\n"))
-	assert.NilError(t, err)
-	assert.Equal(t, n, 11)
-
-	ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	<-ctx.Done()
-	assert.Equal(t, ctx.Err(), context.Canceled)
-	assert.Equal(t, buf.Len(), 17)
-	assert.Equal(t, buf.String(), "echo hello\r\nhello")
+	buf := bytes.NewBuffer(nil)
+	_, err = io.CopyN(buf, stdout, int64(len(expected)))
+	assert.Check(t, <-chErr)
+	assert.Check(t, err)
+	assert.Check(t, cmp.Equal(buf.String(), expected))
 }
 
-func TestAttachNoTTY(t *testing.T) {
+func TestContainerAttachNoTTY(t *testing.T) {
 	ctx := context.Background()
+	client := docker.G(ctx)
+	client.Transport = testutils.NewTransport(t, client.Transport)
+	ctx = docker.WithClient(ctx, client)
+
 	c, err := Create(ctx,
 		WithCreateImage("busybox:latest"),
 		WithCreateAttachStdout,
 		WithCreateAttachStderr,
-		WithCreateCmd("/bin/sh", "-c", "echo hello; echo world 1>&2"),
+		WithCreateCmd("/bin/sh", "-c", "echo hello; >&2 echo world"),
 	)
 	assert.NilError(t, err)
 	defer Remove(ctx, c.ID(), WithRemoveForce)
 
-	attach, err := c.Attach(ctx, WithAttachStdout, WithAttachStderr)
+	stdout, err := c.StdoutPipe(ctx)
 	assert.NilError(t, err)
-	defer attach.Close()
+	defer stdout.Close()
 
-	assert.Assert(t, attach.Stdout() != nil)
-	assert.Assert(t, attach.Stderr() != nil)
+	stderr, err := c.StderrPipe(ctx)
+	assert.NilError(t, err)
+	defer stderr.Close()
 
-	stdoutBuf := bytes.NewBuffer(nil)
-	stderrBuf := bytes.NewBuffer(nil)
+	assert.Assert(t, c.Start(ctx))
 
-	chStdout := make(chan struct{})
+	outBuff := bytes.NewBuffer(nil)
+	chErr := make(chan error, 2)
 	go func() {
-		io.CopyN(stdoutBuf, attach.Stdout(), 6)
-		close(chStdout)
+		_, err := io.CopyN(outBuff, stdout, 6)
+		chErr <- err
+	}()
+	errBuff := bytes.NewBuffer(nil)
+	go func() {
+		_, err := io.CopyN(errBuff, stderr, 6)
+		chErr <- err
 	}()
 
-	chStderr := make(chan struct{})
-	go func() {
-		io.CopyN(stderrBuf, attach.Stderr(), 6)
-		close(chStderr)
-	}()
-
-	assert.NilError(t, c.Start(ctx))
-
-	waitFor(t, chStdout, 30*time.Second, "stdout stream")
-	assert.Check(t, cmp.Equal(stdoutBuf.String(), "hello\n"))
-
-	waitFor(t, chStderr, 30*time.Second, "stderr stream")
-	assert.Check(t, cmp.Equal(stderrBuf.String(), "world\n"))
-}
-
-func waitFor(t *testing.T, ch <-chan struct{}, d time.Duration, desc string) {
-	timer := time.NewTimer(d)
-	defer timer.Stop()
-	select {
-	case <-timer.C:
-		t.Errorf("timeout waiting for %s", desc)
-	case <-ch:
-	}
+	assert.Check(t, <-chErr)
+	assert.Check(t, <-chErr)
+	assert.Check(t, cmp.Equal(outBuff.String(), "hello\n"))
+	assert.Check(t, cmp.Equal(errBuff.String(), "world\n"))
 }

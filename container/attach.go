@@ -2,8 +2,8 @@ package container
 
 import (
 	"context"
-	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -41,12 +41,14 @@ func WithAttachStderr(o *AttachConfig) {
 	o.Stderr = true
 }
 
-func (c *container) Attach(ctx context.Context, opts ...AttachOption) (AttachIO, error) {
-	attach, err := Attach(ctx, c.id, opts...)
-	if err != nil {
-		return nil, err
+func WithAttachStream(o *AttachConfig) {
+	o.Stream = true
+}
+
+func WithAttachDetachKeys(keys string) func(*AttachConfig) {
+	return func(o *AttachConfig) {
+		o.DetachKeys = keys
 	}
-	return attach, nil
 }
 
 func Attach(ctx context.Context, name string, opts ...AttachOption) (AttachIO, error) {
@@ -61,10 +63,6 @@ func AttachWithClient(ctx context.Context, client *docker.Client, name string, o
 	}
 
 	return handleAttach(ctx, client, name, cfg)
-}
-
-func uri(format string, values ...interface{}) string {
-	return fmt.Sprintf(format, values...)
 }
 
 func handleAttach(ctx context.Context, client *docker.Client, name string, cfg AttachConfig) (retAttach *attachIO, retErr error) {
@@ -126,6 +124,12 @@ func handleAttach(ctx context.Context, client *docker.Client, name string, cfg A
 		if cfg.Stderr {
 			stderr, stderrW = io.Pipe()
 		}
+		if stdoutW != nil && stderrW == nil {
+			stderrW = ioutil.Discard
+		}
+		if stderrW != nil && stdoutW == nil {
+			stdoutW = ioutil.Discard
+		}
 		go stdCopy(stdoutW, stderrW, rwc)
 	}
 	if cfg.Stdin {
@@ -164,4 +168,39 @@ func (a *attachIO) Close() error {
 		a.stderr.Close()
 	}
 	return nil
+}
+
+// TODO: Figure out opts for these pipes
+type AttachStdinConfig struct {
+	DetachKeys string
+}
+
+type AttachStdinOption func(config *AttachStdinConfig)
+
+func (c *container) StdinPipe(ctx context.Context, opts ...AttachStdinOption) (io.WriteCloser, error) {
+	var cfg AttachStdinConfig
+	for _, o := range opts {
+		o(&cfg)
+	}
+	attach, err := AttachWithClient(ctx, c.client, c.id, WithAttachStdin, WithAttachStream, WithAttachDetachKeys(cfg.DetachKeys))
+	if err != nil {
+		return nil, err
+	}
+	return attach.Stdin(), nil
+}
+
+func (c *container) StdoutPipe(ctx context.Context) (io.ReadCloser, error) {
+	attach, err := AttachWithClient(ctx, c.client, c.id, WithAttachStdout, WithAttachStream)
+	if err != nil {
+		return nil, err
+	}
+	return attach.Stdout(), nil
+}
+
+func (c *container) StderrPipe(ctx context.Context) (io.ReadCloser, error) {
+	attach, err := AttachWithClient(ctx, c.client, c.id, WithAttachStderr, WithAttachStream)
+	if err != nil {
+		return nil, err
+	}
+	return attach.Stderr(), nil
 }
