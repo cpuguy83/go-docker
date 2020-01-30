@@ -12,15 +12,15 @@ import (
 type StopOption func(*StopConfig)
 
 type StopConfig struct {
+	Client  *docker.Client
 	Timeout *time.Duration
 }
 
-func Stop(ctx context.Context, name string, opts ...StopOption) error {
+func (c *Container) Stop(ctx context.Context, opts ...StopOption) error {
 	var cfg StopConfig
 	for _, o := range opts {
 		o(&cfg)
 	}
-
 	// TODO: Set timeout based on context?
 
 	withQuery := func(req *http.Request) error {
@@ -32,18 +32,11 @@ func Stop(ctx context.Context, name string, opts ...StopOption) error {
 		return nil
 	}
 
-	resp, err := docker.G(ctx).Do(ctx, http.MethodPost, "/containers/"+name+"/stop", withQuery)
+	resp, err := c.tr.Do(ctx, http.MethodPost, "/containers/"+c.id+"/stop", withQuery)
 	if err != nil {
 		return err
 	}
 
 	resp.Body.Close()
-	return nil
-}
-
-func (c *container) Stop(ctx context.Context, opts ...StopOption) error {
-	if err := Stop(ctx, c.id, opts...); err != nil {
-		return err
-	}
 	return nil
 }

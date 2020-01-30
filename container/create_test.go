@@ -2,30 +2,36 @@ package container
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/cpuguy83/go-docker/testutils"
 
-	"github.com/cpuguy83/go-docker"
 	"gotest.tools/assert"
 )
 
 func TestCreate(t *testing.T) {
 	ctx := context.Background()
-	client := docker.G(ctx)
-	client.Transport = testutils.NewTransport(t, client.Transport)
-	ctx = docker.WithClient(ctx, client)
+	tr := testutils.NewDefaultTestTransport(t)
+	s := NewService(tr)
 
-	c, err := Create(ctx)
+	c, err := s.Create(ctx)
 	assert.Check(t, err != nil, err)
 	assert.Check(t, c == nil)
 	if c != nil {
-		Remove(ctx, c.ID(), WithRemoveForce)
+		s.Remove(ctx, c.ID(), WithRemoveForce)
 	}
 
-	c, err = Create(ctx, WithCreateImage("busybox:latest"))
+	name := strings.ToLower(t.Name())
+	c, err = s.Create(ctx, WithCreateImage("busybox:latest"), WithCreateName(name))
 	assert.NilError(t, err)
-	defer Remove(ctx, c.ID(), WithRemoveForce)
+	defer func() {
+		assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))
+	}()
 
 	assert.Assert(t, c.ID() != "")
+
+	inspect, err := c.Inspect(ctx)
+	assert.NilError(t, err)
+	assert.Equal(t, name, strings.TrimPrefix(inspect.Name, "/"))
 }

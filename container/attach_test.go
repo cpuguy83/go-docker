@@ -8,25 +8,25 @@ import (
 
 	"github.com/cpuguy83/go-docker/testutils"
 
-	"github.com/cpuguy83/go-docker"
 	"gotest.tools/assert"
 	"gotest.tools/assert/cmp"
 )
 
 func TestContainerAttachTTY(t *testing.T) {
 	ctx := context.Background()
-	client := docker.G(ctx)
-	client.Transport = testutils.NewTransport(t, client.Transport)
-	ctx = docker.WithClient(ctx, client)
+	tr := testutils.NewDefaultTestTransport(t)
+	s := NewService(tr)
 
-	c, err := Create(ctx,
+	c, err := s.Create(ctx,
 		WithCreateImage("busybox:latest"),
 		WithCreateTTY,
 		WithCreateAttachStdin,
 		WithCreateAttachStdout,
 	)
 	assert.NilError(t, err)
-	defer Remove(ctx, c.ID(), WithRemoveForce)
+	defer func() {
+		assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))
+	}()
 
 	stdout, err := c.StdoutPipe(ctx)
 	assert.NilError(t, err)
@@ -55,18 +55,19 @@ func TestContainerAttachTTY(t *testing.T) {
 
 func TestContainerAttachNoTTY(t *testing.T) {
 	ctx := context.Background()
-	client := docker.G(ctx)
-	client.Transport = testutils.NewTransport(t, client.Transport)
-	ctx = docker.WithClient(ctx, client)
+	tr := testutils.NewDefaultTestTransport(t)
+	s := NewService(tr)
 
-	c, err := Create(ctx,
+	c, err := s.Create(ctx,
 		WithCreateImage("busybox:latest"),
 		WithCreateAttachStdout,
 		WithCreateAttachStderr,
 		WithCreateCmd("/bin/sh", "-c", "echo hello; >&2 echo world"),
 	)
 	assert.NilError(t, err)
-	defer Remove(ctx, c.ID(), WithRemoveForce)
+	defer func() {
+		assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))
+	}()
 
 	stdout, err := c.StdoutPipe(ctx)
 	assert.NilError(t, err)

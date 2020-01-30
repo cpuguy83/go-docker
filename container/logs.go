@@ -9,8 +9,6 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-
-	"github.com/cpuguy83/go-docker"
 )
 
 type LogsReadOption func(*LogReadConfig)
@@ -26,17 +24,9 @@ type LogReadConfig struct {
 	Details    bool
 }
 
-func (c *container) Logs(ctx context.Context, opts ...LogsReadOption) (io.ReadCloser, error) {
-	return LogsWithClient(ctx, c.client, c.id, opts...)
-}
-
-func Logs(ctx context.Context, name string, opts ...LogsReadOption) (io.ReadCloser, error) {
-	return LogsWithClient(ctx, docker.G(ctx), name, opts...)
-}
-
 // TODO: wrap the returned reader in a struct?
 // TODO: Provide helper for consuming logs, maybe like daemon/logs does with a channel of discrete log messages?
-func LogsWithClient(ctx context.Context, client *docker.Client, name string, opts ...LogsReadOption) (io.ReadCloser, error) {
+func (c *Container) Logs(ctx context.Context, opts ...LogsReadOption) (io.ReadCloser, error) {
 	var cfg LogReadConfig
 	for _, o := range opts {
 		o(&cfg)
@@ -51,7 +41,7 @@ func LogsWithClient(ctx context.Context, client *docker.Client, name string, opt
 		return nil
 	}
 
-	resp, err := client.Do(ctx, http.MethodGet, "/container/"+name+"/logs", withLogConfig)
+	resp, err := c.tr.Do(ctx, http.MethodGet, "/container/"+c.id+"/logs", withLogConfig)
 	if err != nil {
 		return nil, err
 	}

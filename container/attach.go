@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/cpuguy83/go-docker"
+	"github.com/cpuguy83/go-docker/transport"
 	"github.com/pkg/errors"
 )
 
@@ -51,21 +51,26 @@ func WithAttachDetachKeys(keys string) func(*AttachConfig) {
 	}
 }
 
-func Attach(ctx context.Context, name string, opts ...AttachOption) (AttachIO, error) {
-	return AttachWithClient(ctx, docker.G(ctx), name, opts...)
-}
-
-func AttachWithClient(ctx context.Context, client *docker.Client, name string, opts ...AttachOption) (AttachIO, error) {
+// Attach attaches to a container's stdio streams.
+// You must specify which streams you want to attach to.
+// Depending on the container config the streams may not be available for attach.
+//
+// It is recommend to call `Attach` separately for each stdio stream. This function does support attaching to any/all streams
+// in a single request, however the semantics of consuming/blocking the streams is quite a bit more complicated since all i/o
+// is multiplexed on a single HTTP stream which can cause one stream to block another if it is not consumed.
+//
+// Note that unconsumed attach streams can block the stdio of the container process.
+func (s *Service) Attach(ctx context.Context, name string, opts ...AttachOption) (AttachIO, error) {
 	var cfg AttachConfig
 	cfg.Stream = true
 	for _, o := range opts {
 		o(&cfg)
 	}
 
-	return handleAttach(ctx, client, name, cfg)
+	return handleAttach(ctx, s.tr, name, cfg)
 }
 
-func handleAttach(ctx context.Context, client *docker.Client, name string, cfg AttachConfig) (retAttach *attachIO, retErr error) {
+func handleAttach(ctx context.Context, tr transport.Doer, name string, cfg AttachConfig) (retAttach *attachIO, retErr error) {
 	defer func() {
 		if retErr != nil {
 			if retAttach != nil {
@@ -85,7 +90,7 @@ func handleAttach(ctx context.Context, client *docker.Client, name string, cfg A
 		return nil
 	}
 
-	rwc, err := client.DoRaw(ctx, http.MethodPost, "/containers/"+name+"/attach", withAttachRequest)
+	rwc, err := tr.DoRaw(ctx, http.MethodPost, "/containers/"+name+"/attach", withAttachRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +102,7 @@ func handleAttach(ctx context.Context, client *docker.Client, name string, cfg A
 
 	var isTTY bool
 	if cfg.Stdout {
-		info, err := Inspect(ctx, name)
+		info, err := handleInspect(ctx, tr, name)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting container details")
 		}
@@ -170,35 +175,26 @@ func (a *attachIO) Close() error {
 	return nil
 }
 
-// TODO: Figure out opts for these pipes
-type AttachStdinConfig struct {
-	DetachKeys string
-}
+// TODO: Do these pipe calls need to be able to set options like DetachKeys?
 
-type AttachStdinOption func(config *AttachStdinConfig)
-
-func (c *container) StdinPipe(ctx context.Context, opts ...AttachStdinOption) (io.WriteCloser, error) {
-	var cfg AttachStdinConfig
-	for _, o := range opts {
-		o(&cfg)
-	}
-	attach, err := AttachWithClient(ctx, c.client, c.id, WithAttachStdin, WithAttachStream, WithAttachDetachKeys(cfg.DetachKeys))
+func (c *Container) StdinPipe(ctx context.Context) (io.WriteCloser, error) {
+	attach, err := handleAttach(ctx, c.tr, c.id, AttachConfig{Stdin: true, Stream: true})
 	if err != nil {
 		return nil, err
 	}
 	return attach.Stdin(), nil
 }
 
-func (c *container) StdoutPipe(ctx context.Context) (io.ReadCloser, error) {
-	attach, err := AttachWithClient(ctx, c.client, c.id, WithAttachStdout, WithAttachStream)
+func (c *Container) StdoutPipe(ctx context.Context) (io.ReadCloser, error) {
+	attach, err := handleAttach(ctx, c.tr, c.id, AttachConfig{Stdout: true, Stream: true})
 	if err != nil {
 		return nil, err
 	}
 	return attach.Stdout(), nil
 }
 
-func (c *container) StderrPipe(ctx context.Context) (io.ReadCloser, error) {
-	attach, err := AttachWithClient(ctx, c.client, c.id, WithAttachStderr, WithAttachStream)
+func (c *Container) StderrPipe(ctx context.Context) (io.ReadCloser, error) {
+	attach, err := handleAttach(ctx, c.tr, c.id, AttachConfig{Stderr: true, Stream: true})
 	if err != nil {
 		return nil, err
 	}

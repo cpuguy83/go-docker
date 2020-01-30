@@ -4,8 +4,6 @@ import (
 	"context"
 	"net/http"
 	"strconv"
-
-	"github.com/cpuguy83/go-docker"
 )
 
 type RemoveOption func(*RemoveConfig)
@@ -20,12 +18,11 @@ func WithRemoveForce(o *RemoveConfig) {
 	o.Force = true
 }
 
-func Remove(ctx context.Context, name string, opts ...RemoveOption) error {
+func (s *Service) Remove(ctx context.Context, name string, opts ...RemoveOption) error {
 	var cfg RemoveConfig
 	for _, o := range opts {
 		o(&cfg)
 	}
-
 	withRemoveConfig := func(req *http.Request) error {
 		q := req.URL.Query()
 		q.Add("force", strconv.FormatBool(cfg.Force))
@@ -35,7 +32,7 @@ func Remove(ctx context.Context, name string, opts ...RemoveOption) error {
 		return nil
 	}
 
-	resp, err := docker.G(ctx).Do(ctx, http.MethodDelete, "/containers/"+name, withRemoveConfig)
+	resp, err := s.tr.Do(ctx, http.MethodDelete, "/containers/"+name, withRemoveConfig)
 	if err != nil {
 		return err
 	}

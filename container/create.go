@@ -13,11 +13,14 @@ import (
 	"github.com/pkg/errors"
 )
 
+const DefaultCreateDecodeLimitBytes = 64 * 1024
+
 type CreateConfig struct {
-	Config        *containertypes.Config
-	HostConfig    *containertypes.HostConfig
-	NetworkConfig *network.NetworkingConfig
-	Name          string
+	DecodeLimitBytes int64
+	Config           *containertypes.Config
+	HostConfig       *containertypes.HostConfig
+	NetworkConfig    *network.NetworkingConfig
+	Name             string
 }
 
 type CreateOption func(*CreateConfig)
@@ -79,32 +82,30 @@ func WithCreateAttachStderr(cfg *CreateConfig) {
 	cfg.Config.AttachStderr = true
 }
 
-func Create(ctx context.Context, opts ...CreateOption) (Container, error) {
-	return CreateWithClient(ctx, docker.G(ctx), opts...)
-}
-
-func CreateWithClient(ctx context.Context, client *docker.Client, opts ...CreateOption) (Container, error) {
+func (s *Service) Create(ctx context.Context, opts ...CreateOption) (*Container, error) {
 	c := CreateConfig{
-		Config:        &containertypes.Config{},
-		HostConfig:    &containertypes.HostConfig{},
-		NetworkConfig: &network.NetworkingConfig{},
+		Config:           &containertypes.Config{},
+		HostConfig:       &containertypes.HostConfig{},
+		NetworkConfig:    &network.NetworkingConfig{},
+		DecodeLimitBytes: DefaultCreateDecodeLimitBytes,
 	}
 	for _, o := range opts {
 		o(&c)
 	}
-	withName := func(*http.Request) error { return nil }
+
+	withName := func(req *http.Request) error { return nil }
 	if c.Name != "" {
-		docker.WithQueryValue("name", c.Name)
+		withName = docker.WithQueryValue("name", c.Name)
 	}
 	cw := &containerConfigWrapper{Config: c.Config, HostConfig: c.HostConfig, NetworkingConfig: c.NetworkConfig}
 
-	resp, err := client.Do(ctx, http.MethodPost, "/containers/create", docker.WithJSONBody(cw), withName)
+	resp, err := s.tr.Do(ctx, http.MethodPost, "/containers/create", docker.WithJSONBody(cw), withName)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	body := io.LimitReader(resp.Body, 64*1024)
+	body := io.LimitReader(resp.Body, c.DecodeLimitBytes)
 
 	data, err := ioutil.ReadAll(body)
 	if err != nil {
@@ -119,7 +120,7 @@ func CreateWithClient(ctx context.Context, client *docker.Client, opts ...Create
 	if cc.ID == "" {
 		return nil, errors.Errorf("empty ID in response: %v", string(data))
 	}
-	return &container{id: cc.ID, client: client}, nil
+	return &Container{id: cc.ID, tr: s.tr}, nil
 }
 
 type containerConfigWrapper struct {
