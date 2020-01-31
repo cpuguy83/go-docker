@@ -5,14 +5,11 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/cpuguy83/go-docker"
 )
 
 type StopOption func(*StopConfig)
 
 type StopConfig struct {
-	Client  *docker.Client
 	Timeout *time.Duration
 }
 

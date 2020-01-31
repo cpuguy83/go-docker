@@ -6,16 +6,13 @@ import (
 	"io"
 	"testing"
 
-	"github.com/cpuguy83/go-docker/testutils"
-
 	"gotest.tools/assert"
 	"gotest.tools/assert/cmp"
 )
 
 func TestContainerAttachTTY(t *testing.T) {
 	ctx := context.Background()
-	tr := testutils.NewDefaultTestTransport(t)
-	s := NewService(tr)
+	s := newTestService(t)
 
 	c, err := s.Create(ctx,
 		WithCreateImage("busybox:latest"),
@@ -55,8 +52,7 @@ func TestContainerAttachTTY(t *testing.T) {
 
 func TestContainerAttachNoTTY(t *testing.T) {
 	ctx := context.Background()
-	tr := testutils.NewDefaultTestTransport(t)
-	s := NewService(tr)
+	s := newTestService(t)
 
 	c, err := s.Create(ctx,
 		WithCreateImage("busybox:latest"),

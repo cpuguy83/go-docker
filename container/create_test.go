@@ -5,15 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cpuguy83/go-docker/testutils"
-
 	"gotest.tools/assert"
 )
 
 func TestCreate(t *testing.T) {
 	ctx := context.Background()
-	tr := testutils.NewDefaultTestTransport(t)
-	s := NewService(tr)
+	s := newTestService(t)
 
 	c, err := s.Create(ctx)
 	assert.Check(t, err != nil, err)
