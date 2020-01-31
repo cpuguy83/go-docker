@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cpuguy83/go-docker/errdefs"
 	"gotest.tools/assert"
 )
 
@@ -13,7 +14,7 @@ func TestCreate(t *testing.T) {
 	s := newTestService(t)
 
 	c, err := s.Create(ctx)
-	assert.Check(t, err != nil, err)
+	assert.Check(t, errdefs.IsInvalidInput(err), err)
 	assert.Check(t, c == nil)
 	if c != nil {
 		s.Remove(ctx, c.ID(), WithRemoveForce)
