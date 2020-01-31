@@ -11,8 +11,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+// AttachOption is used as functional arguments to container attach
 type AttachOption func(*AttachConfig)
 
+// AttachConfig holds the options for attaching to a container
 type AttachConfig struct {
 	Stream     bool
 	Stdin      bool
@@ -22,6 +24,7 @@ type AttachConfig struct {
 	Logs       bool
 }
 
+// AttachIO is used to for providing access to stdio streams of a container
 type AttachIO interface {
 	Stdin() io.WriteCloser
 	Stdout() io.ReadCloser
@@ -29,22 +32,28 @@ type AttachIO interface {
 	Close() error
 }
 
+// WithAttachStdin enables stdin on an attach request
 func WithAttachStdin(o *AttachConfig) {
 	o.Stdin = true
 }
 
+// WithAttachStdOut enables stdout on an attach request
 func WithAttachStdout(o *AttachConfig) {
 	o.Stdout = true
 }
 
+// WithAttachStdErr enables stderr on an attach request
 func WithAttachStderr(o *AttachConfig) {
 	o.Stderr = true
 }
 
+// WithAttachStream sets the stream option on an attach request
+// When attaching, unless you only want historical data (e.g. setting Logs=true), you probably want this.
 func WithAttachStream(o *AttachConfig) {
 	o.Stream = true
 }
 
+// WithAttachDetachKeys sets the key sequence for detaching from an attach request
 func WithAttachDetachKeys(keys string) func(*AttachConfig) {
 	return func(o *AttachConfig) {
 		o.DetachKeys = keys
@@ -60,6 +69,9 @@ func WithAttachDetachKeys(keys string) func(*AttachConfig) {
 // is multiplexed on a single HTTP stream which can cause one stream to block another if it is not consumed.
 //
 // Note that unconsumed attach streams can block the stdio of the container process.
+//
+// It is recommend to instantiate a container object and use the Stdio pipe functions instead of using this.
+// This is for advanced use cases only just to expose all the functionality that the Docker API does.
 func (s *Service) Attach(ctx context.Context, name string, opts ...AttachOption) (AttachIO, error) {
 	var cfg AttachConfig
 	cfg.Stream = true
@@ -177,6 +189,8 @@ func (a *attachIO) Close() error {
 
 // TODO: Do these pipe calls need to be able to set options like DetachKeys?
 
+// StdinPipe opens a pipe to the container's stdin stream.
+// If the container is not configured with `OpenStdin`, this will not work.
 func (c *Container) StdinPipe(ctx context.Context) (io.WriteCloser, error) {
 	attach, err := handleAttach(ctx, c.tr, c.id, AttachConfig{Stdin: true, Stream: true})
 	if err != nil {
@@ -185,6 +199,7 @@ func (c *Container) StdinPipe(ctx context.Context) (io.WriteCloser, error) {
 	return attach.Stdin(), nil
 }
 
+// StdoutPipe opens a pipe to the container's stdout stream.
 func (c *Container) StdoutPipe(ctx context.Context) (io.ReadCloser, error) {
 	attach, err := handleAttach(ctx, c.tr, c.id, AttachConfig{Stdout: true, Stream: true})
 	if err != nil {
@@ -193,6 +208,7 @@ func (c *Container) StdoutPipe(ctx context.Context) (io.ReadCloser, error) {
 	return attach.Stdout(), nil
 }
 
+// StderrPipe opens a pipe to the container's stderr stream.
 func (c *Container) StderrPipe(ctx context.Context) (io.ReadCloser, error) {
 	attach, err := handleAttach(ctx, c.tr, c.id, AttachConfig{Stderr: true, Stream: true})
 	if err != nil {

@@ -13,21 +13,33 @@ import (
 	"github.com/pkg/errors"
 )
 
+// DefaultCreateDecodeLimitBytes is the default max size that will be read from a container create response.
+// This value is used if no value is set on CreateConfig.
 const DefaultCreateDecodeLimitBytes = 64 * 1024
 
+// CreateConfig holds the options for creating a container
 type CreateConfig struct {
-	Config           *containerapi.Config
+	Spec             Spec
 	DecodeLimitBytes int64
-	HostConfig       *containerapi.HostConfig
-	NetworkConfig    *containerapi.NetworkingConfig
 	Name             string
 }
 
+// Spec holds all the configuration for the container create API request
+type Spec struct {
+	containerapi.Config
+	HostConfig    containerapi.HostConfig
+	NetworkConfig containerapi.NetworkingConfig
+}
+
+// Create creates a container.
+// You must specify a CreateOption which sets the image to use (e.g. WithCreateImage) otherwise the API will (should)
+// return an error.
+// All other options are truly optional.
+//
+// TODO: Should "image" be moved to a dedicated function argument?
 func (s *Service) Create(ctx context.Context, opts ...CreateOption) (*Container, error) {
 	c := CreateConfig{
-		Config:           &containerapi.Config{},
-		HostConfig:       &containerapi.HostConfig{},
-		NetworkConfig:    &containerapi.NetworkingConfig{},
+		Spec:             Spec{},
 		DecodeLimitBytes: DefaultCreateDecodeLimitBytes,
 	}
 	for _, o := range opts {
@@ -47,9 +59,7 @@ func (s *Service) Create(ctx context.Context, opts ...CreateOption) (*Container,
 			return nil
 		}
 	}
-	cw := &containerConfigWrapper{Config: c.Config, HostConfig: c.HostConfig, NetworkingConfig: c.NetworkConfig}
-
-	resp, err := s.tr.Do(ctx, http.MethodPost, "/containers/create", withJSONBody(cw), withName)
+	resp, err := s.tr.Do(ctx, http.MethodPost, "/containers/create", withJSONBody(c.Spec), withName)
 	if err != nil {
 		return nil, err
 	}
@@ -71,12 +81,6 @@ func (s *Service) Create(ctx context.Context, opts ...CreateOption) (*Container,
 		return nil, errors.Errorf("empty ID in response: %v", string(data))
 	}
 	return &Container{id: cc.ID, tr: s.tr}, nil
-}
-
-type containerConfigWrapper struct {
-	*containerapi.Config
-	HostConfig       *containerapi.HostConfig
-	NetworkingConfig *containerapi.NetworkingConfig
 }
 
 type containerCreateResponse struct {

@@ -15,6 +15,7 @@ import (
 // DefaultInspectDecodeLimitBytes is the default value used for limit how much data is read from the inspect response.
 const DefaultInspectDecodeLimitBytes = 64 * 1024
 
+// InspectConfig holds the options for inspecting a container
 type InspectConfig struct {
 	// Only read `DecodeLimitBytes` bytes from the inspect response
 	// Set to -1 for unlimited.
@@ -26,10 +27,11 @@ type InspectConfig struct {
 	To interface{}
 }
 
+// InspectOption is used as functional arguments to inspect a container
+// InspectOptions configure an InspectConfig.
 type InspectOption func(config *InspectConfig)
 
-// Inspect a container,
-// If no client is specified in an InspectOption then the client stored in ctx is used.
+// Inspect fetches detailed information about a container.
 func (s *Service) Inspect(ctx context.Context, name string, opts ...InspectOption) (containerapi.ContainerInspect, error) {
 	return handleInspect(ctx, s.tr, name, opts...)
 }
@@ -76,6 +78,7 @@ func handleInspect(ctx context.Context, tr transport.Doer, name string, opts ...
 	return c, nil
 }
 
+// Inspect fetches detailed information about the container.
 func (c *Container) Inspect(ctx context.Context, opts ...InspectOption) (containerapi.ContainerInspect, error) {
 	return handleInspect(ctx, c.tr, c.id, opts...)
 }

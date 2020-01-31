@@ -4,61 +4,74 @@ import (
 	"github.com/cpuguy83/go-docker/container/containerapi"
 )
 
+// CreateOption is used as functional arguments for creating a container
+// CreateOptions configure a CreateConfig
 type CreateOption func(*CreateConfig)
 
-func WithCreateHostConfig(hc *containerapi.HostConfig) CreateOption {
+// WithCreateHostConfig is a CreateOption which sets the HostConfig for the container create spec
+func WithCreateHostConfig(hc containerapi.HostConfig) CreateOption {
 	return func(c *CreateConfig) {
-		c.HostConfig = hc
+		c.Spec.HostConfig = hc
 	}
 }
 
-func WithCreateConfig(cfg *containerapi.Config) CreateOption {
+// WithCreateConfig is a CreateOption which sets the Config for the container create spec
+func WithCreateConfig(cfg containerapi.Config) CreateOption {
 	return func(c *CreateConfig) {
-		c.Config = cfg
+		c.Spec.Config = cfg
 	}
 }
 
-func WithCreateNetworkConfig(cfg *containerapi.NetworkingConfig) CreateOption {
+// WithCreateNetworkingConfig is a CreateOption which sets the NetworkConfig for the container create spec
+func WithCreateNetworkConfig(cfg containerapi.NetworkingConfig) CreateOption {
 	return func(c *CreateConfig) {
-		c.NetworkConfig = cfg
+		c.Spec.NetworkConfig = cfg
 	}
 }
 
+// WithCreateName is a CreateOption which sets the container's name
 func WithCreateName(name string) CreateOption {
 	return func(c *CreateConfig) {
 		c.Name = name
 	}
 }
 
+// WithCreateImage is a CreateOption which sets the container image
 func WithCreateImage(image string) CreateOption {
 	return func(c *CreateConfig) {
-		c.Config.Image = image
+		c.Spec.Image = image
 	}
 }
 
+// WithCreateCmd is a CreateOption which sets the command to run in the container
 func WithCreateCmd(cmd ...string) CreateOption {
 	return func(c *CreateConfig) {
-		c.Config.Cmd = cmd
+		c.Spec.Config.Cmd = cmd
 	}
 }
 
+// WithCreateTTY is a CreateOption which configures the container with a TTY
 func WithCreateTTY(cfg *CreateConfig) {
-	cfg.Config.Tty = true
+	cfg.Spec.Config.Tty = true
 }
 
+// WithCreateAttachStdin is a CreateOption which enables attaching to the container's stdin
 func WithCreateAttachStdin(cfg *CreateConfig) {
-	cfg.Config.AttachStdin = true
-	cfg.Config.OpenStdin = true
+	cfg.Spec.AttachStdin = true
+	cfg.Spec.OpenStdin = true
 }
 
+// WithCreateAttachStdinOnce is a CreateOption which enables attaching to the container's one time
 func WithCreateStdinOnce(cfg *CreateConfig) {
-	cfg.Config.StdinOnce = true
+	cfg.Spec.StdinOnce = true
 }
 
+// WithCreateAttachStdout is a CreateOption which enables attaching to the container's stdout
 func WithCreateAttachStdout(cfg *CreateConfig) {
-	cfg.Config.AttachStdout = true
+	cfg.Spec.AttachStdout = true
 }
 
+// WithCreateAttachStderr is a CreateOption which enables attaching to the container's stderr
 func WithCreateAttachStderr(cfg *CreateConfig) {
-	cfg.Config.AttachStderr = true
+	cfg.Spec.AttachStderr = true
 }

@@ -5,13 +5,17 @@ import (
 	"net/http"
 )
 
+// StartOption is used as functional arguments for container Start
+// A StartOption configures a StartConfig
 type StartOption func(*StartConfig)
 
+// StartConfig holds configuration options for container start
 type StartConfig struct {
 	CheckpointID  string
 	CheckpointDir string
 }
 
+// Start starts a container
 func (c *Container) Start(ctx context.Context, opts ...StartOption) error {
 	var cfg StartConfig
 	for _, o := range opts {

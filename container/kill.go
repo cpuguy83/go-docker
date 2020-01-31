@@ -24,6 +24,7 @@ func WithKillSignal(signal string) KillOption {
 }
 
 // Kill sends a signal to the container.
+// If no signal is provided docker will send the default signal (SIGKILL on Linux) to the container.
 func (s *Service) Kill(ctx context.Context, name string, opts ...KillOption) error {
 	return handleKill(ctx, s.tr, name, opts...)
 }
@@ -46,6 +47,8 @@ func handleKill(ctx context.Context, tr transport.Doer, name string, opts ...Kil
 	return nil
 }
 
+// Kill sends a signal to the container
+// If no signal is provided docker will send the default signal (SIGKILL on Linux).
 func (c *Container) Kill(ctx context.Context, opts ...KillOption) error {
 	return handleKill(ctx, c.tr, c.id, opts...)
 }
