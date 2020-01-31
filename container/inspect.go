@@ -42,7 +42,6 @@ func handleInspect(ctx context.Context, tr transport.Doer, name string, opts ...
 		o(&cfg)
 	}
 
-	// TODO: Do not import from docker
 	var c containerapi.ContainerInspect
 
 	resp, err := tr.Do(ctx, http.MethodGet, "/containers/"+name+"/json")
