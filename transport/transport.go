@@ -32,7 +32,9 @@ func WithRequestBody(r io.ReadCloser) RequestOpt {
 	}
 }
 
-// Transport implements docker.HTTPTransport
+// Transport implements the Doer interface for all the normal docker protocols).
+// This would normally be things that would go over a net.Conn, such as unix or tcp sockets.
+//
 // Create a transport from one of the available helper functions.
 type Transport struct {
 	c      *http.Client
@@ -41,8 +43,10 @@ type Transport struct {
 	scheme string
 }
 
+// RequestOpt is as functional arguments to configure an HTTP request for a Doer.
 type RequestOpt func(*http.Request) error
 
+// Do implements the Doer.Do interface
 func (t *Transport) Do(ctx context.Context, method, uri string, opts ...RequestOpt) (*http.Response, error) {
 	req := &http.Request{}
 	req.Method = method
@@ -66,6 +70,7 @@ func (t *Transport) Do(ctx context.Context, method, uri string, opts ...RequestO
 	return resp, nil
 }
 
+// Do implements the Doer.DoRaw interface
 func (t *Transport) DoRaw(ctx context.Context, method, uri string, opts ...RequestOpt) (rwc io.ReadWriteCloser, retErr error) {
 	req := &http.Request{Header: http.Header{}}
 	req.Method = method
@@ -121,12 +126,20 @@ func FromConnectionString(s string, opts ...ConnectionOption) (*Transport, error
 	return FromConnectionURL(u, opts...)
 }
 
+// ConnectionOption is use as functional arguments for creating a Transport
+// It configures a ConnectionConfig
 type ConnectionOption func(*ConnectionConfig) error
 
+// ConnectionConfig holds the options available for configuring a new transport.
 type ConnectionConfig struct {
 	TLSConfig *tls.Config
 }
 
+// FromConnectionURL creates a Transport from a provided URL
+//
+// The URL's scheme must specify the protocol ("unix", "tcp", etc.)
+//
+// TODO: implement named pipes (windows) and ssh schemes.
 func FromConnectionURL(u *url.URL, opts ...ConnectionOption) (*Transport, error) {
 	switch u.Scheme {
 	case "unix":
