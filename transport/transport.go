@@ -56,7 +56,14 @@ func (t *Transport) Do(ctx context.Context, method, uri string, opts ...RequestO
 			return nil, err
 		}
 	}
-	return t.c.Do(req)
+	resp, err := t.c.Do(req)
+	if err != nil {
+		return resp, err
+	}
+	if err := checkResponseError(resp); err != nil {
+		return resp, err
+	}
+	return resp, nil
 }
 
 func (t *Transport) DoRaw(ctx context.Context, method, uri string, opts ...RequestOpt) (io.ReadWriteCloser, error) {

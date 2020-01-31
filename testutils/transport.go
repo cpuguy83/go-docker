@@ -73,7 +73,15 @@ func (t *Transport) logRequest(req *http.Request) error {
 
 func (t *Transport) logResponse(resp *http.Response, err error) (*http.Response, error) {
 	t.t.Helper()
-	t.t.Log(resp.Status, err)
+	var status string
+	if resp != nil {
+		status = resp.Status
+	}
+	t.t.Log(status, err)
+
+	if resp == nil {
+		return resp, err
+	}
 
 	if resp.Header.Get("Content-Type") != "application/json" {
 		return resp, nil
