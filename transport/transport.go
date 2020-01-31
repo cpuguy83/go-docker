@@ -3,7 +3,6 @@ package transport
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -61,12 +60,13 @@ func (t *Transport) Do(ctx context.Context, method, uri string, opts ...RequestO
 		return resp, err
 	}
 	if err := checkResponseError(resp); err != nil {
-		return resp, err
+		resp.Body.Close()
+		return nil, err
 	}
 	return resp, nil
 }
 
-func (t *Transport) DoRaw(ctx context.Context, method, uri string, opts ...RequestOpt) (io.ReadWriteCloser, error) {
+func (t *Transport) DoRaw(ctx context.Context, method, uri string, opts ...RequestOpt) (rwc io.ReadWriteCloser, retErr error) {
 	req := &http.Request{Header: http.Header{}}
 	req.Method = method
 	req.URL = &url.URL{Path: uri, Host: t.host, Scheme: t.scheme}
@@ -88,6 +88,9 @@ func (t *Transport) DoRaw(ctx context.Context, method, uri string, opts ...Reque
 	}
 
 	cc := httputil.NewClientConn(conn, nil)
+	if retErr != nil {
+		cc.Close()
+	}
 
 	resp, err := cc.Do(req)
 	if err != httputil.ErrPersistEOF {
@@ -96,7 +99,7 @@ func (t *Transport) DoRaw(ctx context.Context, method, uri string, opts ...Reque
 		}
 		if resp.StatusCode != http.StatusSwitchingProtocols {
 			resp.Body.Close()
-			return nil, fmt.Errorf("unable to upgrade to %s, received %d", proto, resp.StatusCode)
+			return nil, errors.Errorf("unable to upgrade to %s, received %d", proto, resp.StatusCode)
 		}
 	}
 
