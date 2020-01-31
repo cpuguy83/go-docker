@@ -19,12 +19,14 @@ func (c *Container) Start(ctx context.Context, opts ...StartOption) error {
 	}
 
 	withStartConfig := func(req *http.Request) error {
+		q := req.URL.Query()
 		if cfg.CheckpointID != "" {
-			req.Form.Set("checkpoint", cfg.CheckpointID)
+			q.Add("checkpoint", cfg.CheckpointID)
 		}
 		if cfg.CheckpointDir != "" {
-			req.Form.Set("checkpoint-dir", cfg.CheckpointID)
+			q.Add("checkpoint-dir", cfg.CheckpointDir)
 		}
+		req.URL.RawQuery = q.Encode()
 		return nil
 	}
 
