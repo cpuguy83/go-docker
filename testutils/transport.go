@@ -48,6 +48,7 @@ func (t *Transport) Do(ctx context.Context, method, uri string, opts ...transpor
 }
 
 func (t *Transport) DoRaw(ctx context.Context, method, uri string, opts ...transport.RequestOpt) (io.ReadWriteCloser, error) {
+	t.t.Helper()
 	opts = append(opts, t.logRequest)
 	return t.d.DoRaw(ctx, method, uri, opts...)
 }
