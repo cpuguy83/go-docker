@@ -3,9 +3,8 @@ package docker
 import (
 	"net/http"
 
-	"github.com/pkg/errors"
-
 	"github.com/docker/docker/errdefs"
+	"github.com/pkg/errors"
 )
 
 // fromStatusCode creates an errdef error, based on the provided HTTP status-code

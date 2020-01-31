@@ -7,11 +7,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/cpuguy83/go-docker/container/containerapi"
 	"github.com/cpuguy83/go-docker/transport"
-
 	"github.com/pkg/errors"
-
-	"github.com/docker/docker/api/types"
 )
 
 // DefaultInspectDecodeLimitBytes is the default value used for limit how much data is read from the inspect response.
@@ -32,11 +30,11 @@ type InspectOption func(config *InspectConfig)
 
 // Inspect a container,
 // If no client is specified in an InspectOption then the client stored in ctx is used.
-func (s *Service) Inspect(ctx context.Context, name string, opts ...InspectOption) (types.ContainerJSON, error) {
+func (s *Service) Inspect(ctx context.Context, name string, opts ...InspectOption) (containerapi.ContainerInspect, error) {
 	return handleInspect(ctx, s.tr, name, opts...)
 }
 
-func handleInspect(ctx context.Context, tr transport.Doer, name string, opts ...InspectOption) (types.ContainerJSON, error) {
+func handleInspect(ctx context.Context, tr transport.Doer, name string, opts ...InspectOption) (containerapi.ContainerInspect, error) {
 	cfg := InspectConfig{
 		DecodeLimitBytes: DefaultInspectDecodeLimitBytes,
 	}
@@ -45,7 +43,7 @@ func handleInspect(ctx context.Context, tr transport.Doer, name string, opts ...
 	}
 
 	// TODO: Do not import from docker
-	var c types.ContainerJSON
+	var c containerapi.ContainerInspect
 
 	resp, err := tr.Do(ctx, http.MethodGet, "/containers/"+name+"/json")
 	if err != nil {
@@ -79,6 +77,6 @@ func handleInspect(ctx context.Context, tr transport.Doer, name string, opts ...
 	return c, nil
 }
 
-func (c *Container) Inspect(ctx context.Context, opts ...InspectOption) (types.ContainerJSON, error) {
+func (c *Container) Inspect(ctx context.Context, opts ...InspectOption) (containerapi.ContainerInspect, error) {
 	return handleInspect(ctx, c.tr, c.id, opts...)
 }

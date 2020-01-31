@@ -8,8 +8,7 @@ import (
 	"net/http"
 
 	"github.com/cpuguy83/go-docker"
-	containertypes "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
+	"github.com/cpuguy83/go-docker/container/containerapi"
 	"github.com/pkg/errors"
 )
 
@@ -17,76 +16,17 @@ const DefaultCreateDecodeLimitBytes = 64 * 1024
 
 type CreateConfig struct {
 	DecodeLimitBytes int64
-	Config           *containertypes.Config
-	HostConfig       *containertypes.HostConfig
-	NetworkConfig    *network.NetworkingConfig
+	Config           *containerapi.Config
+	HostConfig       *containerapi.HostConfig
+	NetworkConfig    *containerapi.NetworkingConfig
 	Name             string
-}
-
-type CreateOption func(*CreateConfig)
-
-func WithCreateHostConfig(hc *containertypes.HostConfig) CreateOption {
-	return func(c *CreateConfig) {
-		c.HostConfig = hc
-	}
-}
-
-func WithCreateConfig(cfg *containertypes.Config) CreateOption {
-	return func(c *CreateConfig) {
-		c.Config = cfg
-	}
-}
-
-func WithCreateNetworkConfig(cfg *network.NetworkingConfig) CreateOption {
-	return func(c *CreateConfig) {
-		c.NetworkConfig = cfg
-	}
-}
-
-func WithCreateName(name string) CreateOption {
-	return func(c *CreateConfig) {
-		c.Name = name
-	}
-}
-
-func WithCreateImage(image string) CreateOption {
-	return func(c *CreateConfig) {
-		c.Config.Image = image
-	}
-}
-
-func WithCreateCmd(cmd ...string) CreateOption {
-	return func(c *CreateConfig) {
-		c.Config.Cmd = cmd
-	}
-}
-
-func WithCreateTTY(cfg *CreateConfig) {
-	cfg.Config.Tty = true
-}
-
-func WithCreateAttachStdin(cfg *CreateConfig) {
-	cfg.Config.AttachStdin = true
-	cfg.Config.OpenStdin = true
-}
-
-func WithCreateStdinOnce(cfg *CreateConfig) {
-	cfg.Config.StdinOnce = true
-}
-
-func WithCreateAttachStdout(cfg *CreateConfig) {
-	cfg.Config.AttachStdout = true
-}
-
-func WithCreateAttachStderr(cfg *CreateConfig) {
-	cfg.Config.AttachStderr = true
 }
 
 func (s *Service) Create(ctx context.Context, opts ...CreateOption) (*Container, error) {
 	c := CreateConfig{
-		Config:           &containertypes.Config{},
-		HostConfig:       &containertypes.HostConfig{},
-		NetworkConfig:    &network.NetworkingConfig{},
+		Config:           &containerapi.Config{},
+		HostConfig:       &containerapi.HostConfig{},
+		NetworkConfig:    &containerapi.NetworkingConfig{},
 		DecodeLimitBytes: DefaultCreateDecodeLimitBytes,
 	}
 	for _, o := range opts {
@@ -124,9 +64,9 @@ func (s *Service) Create(ctx context.Context, opts ...CreateOption) (*Container,
 }
 
 type containerConfigWrapper struct {
-	*containertypes.Config
-	HostConfig       *containertypes.HostConfig
-	NetworkingConfig *network.NetworkingConfig
+	*containerapi.Config
+	HostConfig       *containerapi.HostConfig
+	NetworkingConfig *containerapi.NetworkingConfig
 }
 
 type containerCreateResponse struct {

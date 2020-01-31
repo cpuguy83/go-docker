@@ -10,7 +10,6 @@ import (
 	"net/url"
 
 	"github.com/cpuguy83/go-docker/transport"
-
 	"github.com/pkg/errors"
 )
 
@@ -19,11 +18,19 @@ type Client struct {
 	APIVersion string
 }
 
-func (c *Client) Do(ctx context.Context, method, uri string, opts ...transport.RequestOpt) (*http.Response, error) {
-	if c.APIVersion != "" {
-		uri = "/v" + c.APIVersion + uri
+type NewClientConfig struct {
+}
+
+type versionedTransport struct {
+	tr  transport.Doer
+	ver string
+}
+
+func (t *versionedTransport) Do(ctx context.Context, method, uri string, opts ...transport.RequestOpt) (*http.Response, error) {
+	if t.ver != "" {
+		uri = "/v" + t.ver + uri
 	}
-	resp, err := c.Transport.Do(ctx, method, uri, opts...)
+	resp, err := t.tr.Do(ctx, method, uri, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -33,11 +40,11 @@ func (c *Client) Do(ctx context.Context, method, uri string, opts ...transport.R
 	return resp, nil
 }
 
-func (c *Client) DoRaw(ctx context.Context, method, uri string, opts ...transport.RequestOpt) (io.ReadWriteCloser, error) {
-	if c.APIVersion != "" {
-		uri = "/v" + c.APIVersion + uri
+func (t *versionedTransport) DoRaw(ctx context.Context, method, uri string, opts ...transport.RequestOpt) (io.ReadWriteCloser, error) {
+	if t.ver != "" {
+		uri = "/v" + t.ver + uri
 	}
-	return c.Transport.DoRaw(ctx, method, uri, opts...)
+	return t.tr.DoRaw(ctx, method, uri, opts...)
 }
 
 type errorResponse struct {

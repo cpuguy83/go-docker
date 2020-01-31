@@ -4,9 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/pkg/errors"
-
 	"github.com/cpuguy83/go-docker/transport"
+	"github.com/pkg/errors"
 )
 
 type KillOption func(*KillConfig)
