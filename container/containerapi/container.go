@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/cpuguy83/go-docker/container/containerapi/mount"
-	"github.com/docker/go-connections/nat"
 )
 
 // ContainerInspect is newly used struct along with MountPoint
@@ -44,13 +43,13 @@ type NetworkAddress struct {
 
 // NetworkSettings exposes the network settings in the api
 type NetworkSettings struct {
-	Bridge                 string      // Bridge is the Bridge name the network uses(e.g. `docker0`)
-	SandboxID              string      // SandboxID uniquely represents a container's network stack
-	HairpinMode            bool        // HairpinMode specifies if hairpin NAT should be enabled on the virtual interface
-	LinkLocalIPv6Address   string      // LinkLocalIPv6Address is an IPv6 unicast address using the link-local prefix
-	LinkLocalIPv6PrefixLen int         // LinkLocalIPv6PrefixLen is the prefix length of an IPv6 unicast address
-	Ports                  nat.PortMap // Ports is a collection of PortBinding indexed by Port
-	SandboxKey             string      // SandboxKey identifies the sandbox
+	Bridge                 string  // Bridge is the Bridge name the network uses(e.g. `docker0`)
+	SandboxID              string  // SandboxID uniquely represents a container's network stack
+	HairpinMode            bool    // HairpinMode specifies if hairpin NAT should be enabled on the virtual interface
+	LinkLocalIPv6Address   string  // LinkLocalIPv6Address is an IPv6 unicast address using the link-local prefix
+	LinkLocalIPv6PrefixLen int     // LinkLocalIPv6PrefixLen is the prefix length of an IPv6 unicast address
+	Ports                  PortMap // Ports is a collection of PortBinding indexed by Port
+	SandboxKey             string  // SandboxKey identifies the sandbox
 	SecondaryIPAddresses   []NetworkAddress
 	SecondaryIPv6Addresses []NetworkAddress
 	Networks               map[string]*EndpointSettings

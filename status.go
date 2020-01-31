@@ -3,13 +3,11 @@ package docker
 import (
 	"net/http"
 
-	"github.com/docker/docker/errdefs"
+	"github.com/cpuguy83/go-docker/errdefs"
 	"github.com/pkg/errors"
 )
 
 // fromStatusCode creates an errdef error, based on the provided HTTP status-code
-//
-// TODO: Do not import errdefs from docker/docker
 func fromStatusCode(err error, statusCode int) error {
 	if err == nil {
 		return err
@@ -17,35 +15,24 @@ func fromStatusCode(err error, statusCode int) error {
 	err = errors.Wrapf(err, "error in response, status code: %d", statusCode)
 	switch statusCode {
 	case http.StatusNotFound:
-		err = errdefs.NotFound(err)
+		err = errdefs.AsNotFound(err)
 	case http.StatusBadRequest:
-		err = errdefs.InvalidParameter(err)
+		err = errdefs.AsInvalidInput(err)
 	case http.StatusConflict:
-		err = errdefs.Conflict(err)
+		err = errdefs.AsConflict(err)
 	case http.StatusUnauthorized:
-		err = errdefs.Unauthorized(err)
+		err = errdefs.AsUnauthorized(err)
 	case http.StatusServiceUnavailable:
-		err = errdefs.Unavailable(err)
+		err = errdefs.AsUnavailable(err)
 	case http.StatusForbidden:
-		err = errdefs.Forbidden(err)
+		err = errdefs.AsForbidden(err)
 	case http.StatusNotModified:
-		err = errdefs.NotModified(err)
+		err = errdefs.AsNotModified(err)
 	case http.StatusNotImplemented:
-		err = errdefs.NotImplemented(err)
-	case http.StatusInternalServerError:
-		if !errdefs.IsSystem(err) && !errdefs.IsUnknown(err) && !errdefs.IsDataLoss(err) && !errdefs.IsDeadline(err) && !errdefs.IsCancelled(err) {
-			err = errdefs.System(err)
-		}
+		err = errdefs.AsNotImplemented(err)
 	default:
-		switch {
-		case statusCode >= 200 && statusCode < 400:
-			// it's a client error
-		case statusCode >= 400 && statusCode < 500:
-			err = errdefs.InvalidParameter(err)
-		case statusCode >= 500 && statusCode < 600:
-			err = errdefs.System(err)
-		default:
-			err = errdefs.Unknown(err)
+		if statusCode >= 400 && statusCode < 500 {
+			err = errdefs.AsInvalidInput(err)
 		}
 	}
 	return err
