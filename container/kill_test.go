@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/cpuguy83/go-docker/errdefs"
@@ -16,7 +17,7 @@ func TestKill(t *testing.T) {
 	err := s.Kill(ctx, "notexist")
 	assert.Check(t, errdefs.IsNotFound(err), err)
 
-	c, err := s.Create(ctx, WithCreateTTY, WithCreateImage("busybox:latest"), WithCreateCmd("/bin/top"))
+	c, err := s.Create(ctx, WithCreateName(strings.ToLower(t.Name())), WithCreateTTY, WithCreateImage("busybox:latest"), WithCreateCmd("/bin/top"))
 	defer func() {
 		assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))
 	}()

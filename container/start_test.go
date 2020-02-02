@@ -17,6 +17,11 @@ func TestStart(t *testing.T) {
 	assert.Assert(t, errdefs.IsNotFound(err), err)
 
 	c, err = s.Create(ctx, WithCreateImage("busybox:latest"))
+	defer func() {
+		if c != nil {
+			assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))
+		}
+	}()
 	assert.NilError(t, err)
 	assert.NilError(t, c.Start(ctx))
 	assert.NilError(t, c.Start(ctx))

@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/cpuguy83/go-docker/errdefs"
@@ -15,7 +16,7 @@ func TestRemove(t *testing.T) {
 	err := s.Remove(ctx, "notexist")
 	assert.Check(t, errdefs.IsNotFound(err))
 
-	c, err := s.Create(ctx, WithCreateImage("busybox:latest"))
+	c, err := s.Create(ctx, WithCreateImage(strings.ToLower(t.Name())), WithCreateImage("busybox:latest"))
 	assert.NilError(t, err)
 	assert.Check(t, s.Remove(ctx, c.ID()), "leaked container: %s", c.ID())
 

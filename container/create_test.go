@@ -17,7 +17,9 @@ func TestCreate(t *testing.T) {
 	assert.Check(t, errdefs.IsInvalidInput(err), err)
 	assert.Check(t, c == nil)
 	if c != nil {
-		s.Remove(ctx, c.ID(), WithRemoveForce)
+		if err := s.Remove(ctx, c.ID(), WithRemoveForce); err != nil && !errdefs.IsNotFound(err) {
+			t.Error(err)
+		}
 	}
 
 	name := strings.ToLower(t.Name())
