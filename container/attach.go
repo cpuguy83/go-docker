@@ -124,9 +124,13 @@ func handleAttach(ctx context.Context, tr transport.Doer, name string, cfg Attac
 
 	if isTTY {
 		if cfg.Stdout {
-			var stdoutW io.WriteCloser
+			var stdoutW *io.PipeWriter
 			stdout, stdoutW = io.Pipe()
-			go io.Copy(stdoutW, rwc)
+			go func() {
+				_, err := io.Copy(stdoutW, rwc)
+				stdoutW.CloseWithError(err)
+				rwc.Close()
+			}()
 		}
 	} else {
 		// TODO: This implementation can be a little funky because stderr and stodout
@@ -136,11 +140,25 @@ func handleAttach(ctx context.Context, tr transport.Doer, name string, cfg Attac
 		// TODO: consider using websocket? I'm not sure this actually works correctly
 		// in docker.
 		var stdoutW, stderrW io.Writer
+		closeStdout := func(error) {}
+		closeStderr := func(error) {}
 		if cfg.Stdout {
-			stdout, stdoutW = io.Pipe()
+			r, w := io.Pipe()
+			stdout = r
+			stdoutW = w
+			closeStdout = func(err error) {
+				w.CloseWithError(err)
+				closeStderr(err)
+			}
 		}
 		if cfg.Stderr {
-			stderr, stderrW = io.Pipe()
+			r, w := io.Pipe()
+			stderr = r
+			stderrW = w
+			closeStderr = func(err error) {
+				w.CloseWithError(err)
+				closeStdout(err)
+			}
 		}
 		if stdoutW != nil && stderrW == nil {
 			stderrW = ioutil.Discard
@@ -148,7 +166,12 @@ func handleAttach(ctx context.Context, tr transport.Doer, name string, cfg Attac
 		if stderrW != nil && stdoutW == nil {
 			stdoutW = ioutil.Discard
 		}
-		go streamutil.StdCopy(stdoutW, stderrW, rwc)
+		go func() {
+			_, err := streamutil.StdCopy(stdoutW, stderrW, rwc)
+			closeStdout(err)
+			closeStderr(err)
+			rwc.Close()
+		}()
 	}
 	if cfg.Stdin {
 		stdin = rwc
