@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/cpuguy83/go-docker/container/streamutil"
 	"github.com/cpuguy83/go-docker/transport"
 	"github.com/pkg/errors"
 )
@@ -147,7 +148,7 @@ func handleAttach(ctx context.Context, tr transport.Doer, name string, cfg Attac
 		if stderrW != nil && stdoutW == nil {
 			stdoutW = ioutil.Discard
 		}
-		go stdCopy(stdoutW, stderrW, rwc)
+		go streamutil.StdCopy(stdoutW, stderrW, rwc)
 	}
 	if cfg.Stdin {
 		stdin = rwc
