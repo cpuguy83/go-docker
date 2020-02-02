@@ -83,6 +83,7 @@ func (s *Service) Attach(ctx context.Context, name string, opts ...AttachOption)
 	return handleAttach(ctx, s.tr, name, cfg)
 }
 
+// TODO: this needs more tests to handle errors cases
 func handleAttach(ctx context.Context, tr transport.Doer, name string, cfg AttachConfig) (retAttach *attachIO, retErr error) {
 	defer func() {
 		if retErr != nil {
