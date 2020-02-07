@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cpuguy83/go-docker/testutils"
+
 	"gotest.tools/assert"
 	"gotest.tools/assert/cmp"
 )
@@ -71,7 +73,7 @@ func TestStdCopyNormal(t *testing.T) {
 
 	w.Close()
 
-	deadline(t, 10*time.Second, testCh)
+	testutils.Deadline(t, 10*time.Second, testCh)
 }
 
 func TestStdCopyWithSystemErr(t *testing.T) {
@@ -99,20 +101,5 @@ func TestStdCopyWithSystemErr(t *testing.T) {
 			assert.Check(t, cmp.Equal(copied, int64(len(data1))))
 		}
 	}()
-
-	deadline(t, 10*time.Second, testCh)
-}
-
-func deadline(t *testing.T, dur time.Duration, fChan <-chan func(t *testing.T)) {
-	t.Helper()
-
-	timer := time.NewTimer(dur)
-	defer timer.Stop()
-
-	select {
-	case <-timer.C:
-		t.Fatal("timeout waiting")
-	case f := <-fChan:
-		f(t)
-	}
+	testutils.Deadline(t, 10*time.Second, testCh)
 }
