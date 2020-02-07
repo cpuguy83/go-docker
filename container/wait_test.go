@@ -20,7 +20,7 @@ func TestWait(t *testing.T) {
 	assert.Assert(t, errdefs.IsNotFound(err), err)
 
 	c, err = s.Create(ctx, WithCreateImage("busybox:latest"),
-		WithCreateCmd("/bin/sh", "-c", "trap 'exit 1' EXIT; while true; do sleep 1; done"),
+		WithCreateCmd("/bin/sh", "-c", "trap 'exit 1' EXIT; while true; do sleep 0.1; done"),
 	)
 	assert.NilError(t, err)
 
