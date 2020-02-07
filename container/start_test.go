@@ -25,4 +25,8 @@ func TestStart(t *testing.T) {
 	assert.NilError(t, err)
 	assert.NilError(t, c.Start(ctx))
 	assert.NilError(t, c.Start(ctx))
+
+	inspect, err := c.Inspect(ctx)
+	assert.NilError(t, err)
+	assert.Assert(t, inspect.State.Running)
 }
