@@ -2,7 +2,6 @@ package streamutil
 
 import (
 	"io"
-	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -15,13 +14,16 @@ import (
 // In other words: if `err` is non nil, it indicates a real underlying error.
 //
 // `written` will hold the total number of bytes written to `dstout` and `dsterr`.
-func StdCopy(dstout, dsterr io.Writer, src io.Reader) (written int64, err error) {
+func StdCopy(dstout, dsterr io.Writer, src io.Reader) (written int64, retErr error) {
 	rdr := NewStdReader(src)
 	buf := make([]byte, 32*2014)
 
 	for {
 		hdr, err := rdr.Next()
 		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
 			return written, err
 		}
 
@@ -33,14 +35,12 @@ func StdCopy(dstout, dsterr io.Writer, src io.Reader) (written int64, err error)
 		case Stderr:
 			out = dsterr
 		case Systemerr:
-			sb := &strings.Builder{}
 			// Limit the size of this message to the size of our buffer to prevent memory exhaustion
-			if _, err := io.CopyBuffer(sb, io.LimitReader(rdr, int64(len(buf))), buf); err != nil {
-				sb.Reset()
-				return written, errors.Wrapf(err, "error while copying system error from stdio stream, truncated message=%q", sb)
+			n, err := rdr.Read(buf)
+			if err != nil {
+				return written, errors.Wrapf(err, "error while copying system error from stdio stream, truncated message=%q", buf[:n])
 			}
-			sb.Reset()
-			return written, errors.Errorf("%s", sb)
+			return written, errors.Errorf("%s", buf[:n])
 		default:
 			return written, errors.Errorf("got data for unknown stream id: %d", hdr.Descriptor)
 		}
