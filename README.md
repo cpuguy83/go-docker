@@ -7,7 +7,7 @@ The goals of this project are:
 
 1. Abstract away connection semantics - the official client is kind of broken in this regard, where abstractions for
 connection and transport protocol are co-mingled. This makes it difficult to, for instance, take advantage of HTTP/2
-in the official client, or implement things like SSH forwarding (this exists in the official client, but not with great
+in the official client, or implement things like SSH forwarding (this exists in the official client, but with great
 effort).
 2. Semantic versioning - The official client is built such that it is very difficult to not make breaking changes when
 adding new things, therefore it is difficult to version semantically (without being at some insanely high and meaningless
