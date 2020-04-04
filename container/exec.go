@@ -87,6 +87,7 @@ type ExecStartOption func(config *ExecStartConfig)
 
 // ExecStartConfig holds all the options for starting a new process in a container
 type ExecStartConfig struct {
+	Detach bool
 }
 
 // Start starts the exec process
@@ -95,6 +96,10 @@ type ExecStartConfig struct {
 // For now I would like to only support start and look at adding an API to the Docker API for a more generic attach.
 func (e *ExecProcess) Start(ctx context.Context, opts ...ExecStartOption) error {
 	var cfg ExecStartConfig
+	// detach otherwise the API will basically be async.
+	// For instance, if you call start, it returns successful, then inspect, you can end up in a race where pid can be
+	// 0 still.
+	cfg.Detach = true
 	for _, o := range opts {
 		o(&cfg)
 	}

@@ -48,10 +48,7 @@ func TestExec(t *testing.T) {
 	assert.Check(t, cmp.Equal(inspect.ID, ep.ID()))
 	assert.Check(t, cmp.Equal(inspect.ContainerID, c.ID()))
 	assert.Check(t, inspect.Running)
-	// Pid seems to be 0 regardless of state?
-	// TODO: investigate this further
-	// Upon first inspection this seems tobe configured correctly in the client so maybe a daemon bug.
-	// assert.Check(t, inspect.Pid != 0)
+	assert.Check(t, inspect.Pid != 0)
 	assert.Check(t, cmp.Equal(inspect.ExitCode, nilCode))
 
 	assert.NilError(t, c.Stop(ctx))
