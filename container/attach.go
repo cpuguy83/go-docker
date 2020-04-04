@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"github.com/cpuguy83/go-docker/version"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -104,7 +105,7 @@ func handleAttach(ctx context.Context, tr transport.Doer, name string, cfg Attac
 		return nil
 	}
 
-	rwc, err := tr.DoRaw(ctx, http.MethodPost, "/containers/"+name+"/attach", withAttachRequest)
+	rwc, err := tr.DoRaw(ctx, http.MethodPost, version.Join(ctx, "/containers/"+name+"/attach"), withAttachRequest)
 	if err != nil {
 		return nil, err
 	}

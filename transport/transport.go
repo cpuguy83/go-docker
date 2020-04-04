@@ -24,13 +24,8 @@ type Doer interface {
 	DoRaw(ctx context.Context, method string, uri string, opts ...RequestOpt) (io.ReadWriteCloser, error)
 }
 
-// WithRequestBody sets the body of the http request to the passed in reader
-func WithRequestBody(r io.ReadCloser) RequestOpt {
-	return func(req *http.Request) error {
-		req.Body = r
-		return nil
-	}
-}
+// RequestOpt is as functional arguments to configure an HTTP request for a Doer.
+type RequestOpt func(*http.Request) error
 
 // Transport implements the Doer interface for all the normal docker protocols).
 // This would normally be things that would go over a net.Conn, such as unix or tcp sockets.
@@ -42,9 +37,6 @@ type Transport struct {
 	host   string
 	scheme string
 }
-
-// RequestOpt is as functional arguments to configure an HTTP request for a Doer.
-type RequestOpt func(*http.Request) error
 
 // Do implements the Doer.Do interface
 func (t *Transport) Do(ctx context.Context, method, uri string, opts ...RequestOpt) (*http.Response, error) {
@@ -62,10 +54,6 @@ func (t *Transport) Do(ctx context.Context, method, uri string, opts ...RequestO
 	resp, err := t.c.Do(req)
 	if err != nil {
 		return resp, err
-	}
-	if err := checkResponseError(resp); err != nil {
-		resp.Body.Close()
-		return nil, err
 	}
 	return resp, nil
 }

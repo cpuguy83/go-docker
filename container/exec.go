@@ -7,6 +7,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/cpuguy83/go-docker/httputil"
+
+	"github.com/cpuguy83/go-docker/version"
+
 	"github.com/pkg/errors"
 
 	"github.com/cpuguy83/go-docker/transport"
@@ -24,18 +28,17 @@ type ExecProcess struct {
 
 // ExecConfig holds all the options for creating a new process in a container
 type ExecConfig struct {
-	DeclodeLimitBytes int64    `json:"-"`
-	User              string   // User that will run the command
-	Privileged        bool     // Is the container in privileged mode
-	Tty               bool     // Attach standard streams to a tty.
-	AttachStdin       bool     // Attach the standard input, makes possible user interaction
-	AttachStderr      bool     // Attach the standard error
-	AttachStdout      bool     // Attach the standard output
-	Detach            bool     // Execute in detach mode
-	DetachKeys        string   // Escape keys for detach
-	Env               []string // Environment variables
-	WorkingDir        string   // Working directory
-	Cmd               []string // Execution commands and args
+	User         string   // User that will run the command
+	Privileged   bool     // Is the container in privileged mode
+	Tty          bool     // Attach standard streams to a tty.
+	AttachStdin  bool     // Attach the standard input, makes possible user interaction
+	AttachStderr bool     // Attach the standard error
+	AttachStdout bool     // Attach the standard output
+	Detach       bool     // Execute in detach mode
+	DetachKeys   string   // Escape keys for detach
+	Env          []string // Environment variables
+	WorkingDir   string   // Working directory
+	Cmd          []string // Execution commands and args
 }
 
 // ExecOption is used as functional arguments to configure an ExecConfig
@@ -59,11 +62,10 @@ func (c *Container) Exec(ctx context.Context, opts ...ExecOption) (*ExecProcess,
 	for _, o := range opts {
 		o(&cfg)
 	}
-	if cfg.DeclodeLimitBytes == 0 {
-		cfg.DeclodeLimitBytes = DefaultExecDecodeLimitBytes
-	}
 
-	resp, err := c.tr.Do(ctx, http.MethodPost, "/containers/"+c.id+"/exec", withJSONBody(cfg))
+	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
+		return c.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/"+c.id+"/exec"), withJSONBody(cfg))
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +77,7 @@ func (c *Container) Exec(ctx context.Context, opts ...ExecOption) (*ExecProcess,
 	}
 
 	var id execCreateResponse
-	if err := json.NewDecoder(io.LimitReader(resp.Body, cfg.DeclodeLimitBytes)).Decode(&id); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&id); err != nil {
 		return nil, errors.Wrap(err, "error decoding exec create response body")
 	}
 
@@ -104,7 +106,9 @@ func (e *ExecProcess) Start(ctx context.Context, opts ...ExecStartOption) error 
 		o(&cfg)
 	}
 
-	resp, err := e.tr.Do(ctx, http.MethodPost, "/exec/"+e.id+"/start", withJSONBody(cfg))
+	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
+		return e.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/exec/"+e.id+"/start"), withJSONBody(cfg))
+	})
 	if err != nil {
 		return err
 	}
@@ -161,7 +165,9 @@ func (e *ExecProcess) Inspect(ctx context.Context, opts ...ExecInspectOption) (E
 	}
 
 	var inspect ExecInspect
-	resp, err := e.tr.Do(ctx, http.MethodGet, "/exec/"+e.id+"/json")
+	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
+		return e.tr.Do(ctx, http.MethodGet, version.Join(ctx, "/exec/"+e.id+"/json"))
+	})
 	if err != nil {
 		return inspect, err
 	}
@@ -185,12 +191,14 @@ type ExecResizeConfig struct {
 
 // Resize resizes the exec processes TTY
 func (e *ExecProcess) Resize(ctx context.Context, cfg ExecResizeConfig) error {
-	resp, err := e.tr.Do(ctx, http.MethodPost, "/exec/"+e.id+"/resize", func(req *http.Request) error {
-		q := req.URL.Query()
-		q.Add("w", strconv.Itoa(cfg.Width))
-		q.Add("h", strconv.Itoa(cfg.Height))
-		req.URL.RawQuery = q.Encode()
-		return nil
+	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
+		return e.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/exec/"+e.id+"/resize"), func(req *http.Request) error {
+			q := req.URL.Query()
+			q.Add("w", strconv.Itoa(cfg.Width))
+			q.Add("h", strconv.Itoa(cfg.Height))
+			req.URL.RawQuery = q.Encode()
+			return nil
+		})
 	})
 	if err != nil {
 		return err

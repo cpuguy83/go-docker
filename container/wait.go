@@ -3,9 +3,10 @@ package container
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 
+	"github.com/cpuguy83/go-docker/httputil"
+	"github.com/cpuguy83/go-docker/version"
 	"github.com/pkg/errors"
 )
 
@@ -36,8 +37,7 @@ const (
 
 // WaitConfig holds the options for waiting on a container
 type WaitConfig struct {
-	Condition        WaitCondition
-	DecodeLimitBytes int64
+	Condition WaitCondition
 }
 
 // WaitOption is used as functional arguments to container wait
@@ -74,15 +74,13 @@ func (c *Container) Wait(ctx context.Context, opts ...WaitOption) (ExitStatus, e
 		o(&cfg)
 	}
 
-	if cfg.DecodeLimitBytes == 0 {
-		cfg.DecodeLimitBytes = DefaultWaitDecodeLimitBytes
-	}
-
-	resp, err := c.tr.Do(ctx, http.MethodPost, "/containers/"+c.id+"/wait", func(req *http.Request) error {
-		q := req.URL.Query()
-		q.Add("condition", string(cfg.Condition))
-		req.URL.RawQuery = q.Encode()
-		return nil
+	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
+		return c.tr.Do(ctx, http.MethodPost, version.Join(ctx, version.Join(ctx, "/containers/"+c.id+"/wait")), func(req *http.Request) error {
+			q := req.URL.Query()
+			q.Add("condition", string(cfg.Condition))
+			req.URL.RawQuery = q.Encode()
+			return nil
+		})
 	})
 	if err != nil {
 		return nil, err
@@ -90,7 +88,7 @@ func (c *Container) Wait(ctx context.Context, opts ...WaitOption) (ExitStatus, e
 	defer resp.Body.Close()
 
 	var ws waitStatus
-	if err := json.NewDecoder(io.LimitReader(resp.Body, cfg.DecodeLimitBytes)).Decode(&ws); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&ws); err != nil {
 		return nil, errors.Wrap(err, "could not decode resp")
 	}
 

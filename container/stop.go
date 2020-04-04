@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/cpuguy83/go-docker/httputil"
+	"github.com/cpuguy83/go-docker/version"
 )
 
 // StopOption is used as functional arguments to container stop
@@ -42,7 +45,9 @@ func (c *Container) Stop(ctx context.Context, opts ...StopOption) error {
 		return nil
 	}
 
-	resp, err := c.tr.Do(ctx, http.MethodPost, "/containers/"+c.id+"/stop", withQuery)
+	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
+		return c.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/"+c.id+"/stop"), withQuery)
+	})
 	if err != nil {
 		return err
 	}

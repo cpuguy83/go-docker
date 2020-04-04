@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/cpuguy83/go-docker/httputil"
+	"github.com/cpuguy83/go-docker/version"
 	"github.com/pkg/errors"
 )
 
@@ -41,9 +43,14 @@ func (c *Container) Logs(ctx context.Context, opts ...LogsReadOption) (io.ReadCl
 		return nil
 	}
 
-	resp, err := c.tr.Do(ctx, http.MethodGet, "/container/"+c.id+"/logs", withLogConfig)
+	// Here we do not want to limit the response size since we are returning a log stream, so we perform this manually
+	//  instead of with httputil.DoRequest
+	resp, err := c.tr.Do(ctx, http.MethodGet, version.Join(ctx, "/container/"+c.id+"/logs"), withLogConfig)
 	if err != nil {
 		return nil, err
 	}
-	return resp.Body, nil
+
+	body := resp.Body
+	httputil.LimitResponse(ctx, resp)
+	return body, httputil.CheckResponseError(resp)
 }

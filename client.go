@@ -12,8 +12,6 @@ type Client struct {
 
 // NewClientConfig is the list of options for configuring a new docker client
 type NewClientConfig struct {
-	// Sets the API version to use when communicating with Docker
-	APIVersion string
 	// Transport is the communication method for reaching a docker engine instance.
 	// You can implement your own transport, or use the ones provided in the transport package.
 	// If this is unset, the default transport will be used (unix socket connected to /var/run/docker.sock).
@@ -38,9 +36,6 @@ func NewClient(opts ...NewClientOption) *Client {
 	if tr == nil {
 		// TODO: make this platform specific
 		tr = transport.DefaultUnixTransport()
-	}
-	if cfg.APIVersion != "" {
-		return &Client{tr: &transport.Versioned{APIVersion: cfg.APIVersion, Transport: tr}}
 	}
 	return &Client{tr: tr}
 }

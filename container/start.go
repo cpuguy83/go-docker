@@ -3,6 +3,9 @@ package container
 import (
 	"context"
 	"net/http"
+
+	"github.com/cpuguy83/go-docker/httputil"
+	"github.com/cpuguy83/go-docker/version"
 )
 
 // StartOption is used as functional arguments for container Start
@@ -34,7 +37,9 @@ func (c *Container) Start(ctx context.Context, opts ...StartOption) error {
 		return nil
 	}
 
-	resp, err := c.tr.Do(ctx, http.MethodPost, "/containers/"+c.id+"/start", withStartConfig)
+	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
+		return c.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/"+c.id+"/start"), withStartConfig)
+	})
 	if err != nil {
 		return err
 	}

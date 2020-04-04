@@ -4,7 +4,9 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/cpuguy83/go-docker/httputil"
 	"github.com/cpuguy83/go-docker/transport"
+	"github.com/cpuguy83/go-docker/version"
 	"github.com/pkg/errors"
 )
 
@@ -34,11 +36,13 @@ func handleKill(ctx context.Context, tr transport.Doer, name string, opts ...Kil
 	for _, o := range opts {
 		o(&cfg)
 	}
-	resp, err := tr.Do(ctx, http.MethodPost, "/containers/"+name+"/kill", func(req *http.Request) error {
-		q := req.URL.Query()
-		q.Add("signal", cfg.Signal)
-		req.URL.RawQuery = q.Encode()
-		return nil
+	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
+		return tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/"+name+"/kill"), func(req *http.Request) error {
+			q := req.URL.Query()
+			q.Add("signal", cfg.Signal)
+			req.URL.RawQuery = q.Encode()
+			return nil
+		})
 	})
 	if err != nil {
 		return errors.Wrap(err, "error sending signal")

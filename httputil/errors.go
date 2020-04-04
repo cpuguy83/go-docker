@@ -1,9 +1,7 @@
-package transport
+package httputil
 
 import (
 	"encoding/json"
-	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/cpuguy83/go-docker/errdefs"
@@ -18,26 +16,24 @@ func (e errorResponse) Error() string {
 	return e.Message
 }
 
-func checkResponseError(resp *http.Response) error {
+// CheckResponseError checks the http response for standard error codes.
+//
+// For the most part this should return error implemented from the `errdefs` package
+func CheckResponseError(resp *http.Response) error {
 	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
 		return nil
 	}
 
-	b, err := ioutil.ReadAll(io.LimitReader(resp.Body, 16*1024))
-	if err != nil {
-		return errors.Wrap(err, "error reading error response body")
-	}
-
 	var e errorResponse
-	if err := json.Unmarshal(b, &e); err != nil {
-		return errors.Wrap(err, "error unmarshaling server error response")
+	if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
+		resp.Body.Close()
+		return errors.Wrap(fromStatusCode(err, resp.StatusCode), "error unmarshaling server error response")
 	}
 
-	return FromStatusCode(&e, resp.StatusCode)
+	return fromStatusCode(&e, resp.StatusCode)
 }
 
-// FromStatusCode creates an errdef error, based on the provided HTTP status-code
-func FromStatusCode(err error, statusCode int) error {
+func fromStatusCode(err error, statusCode int) error {
 	if err == nil {
 		return err
 	}

@@ -3,9 +3,12 @@ package container
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/cpuguy83/go-docker/httputil"
+
+	"github.com/cpuguy83/go-docker/version"
 
 	"github.com/cpuguy83/go-docker/container/containerapi"
 	"github.com/cpuguy83/go-docker/transport"
@@ -17,9 +20,6 @@ const DefaultInspectDecodeLimitBytes = 64 * 1024
 
 // InspectConfig holds the options for inspecting a container
 type InspectConfig struct {
-	// Only read `DecodeLimitBytes` bytes from the inspect response
-	// Set to -1 for unlimited.
-	DecodeLimitBytes int64
 	// Allows callers of `Inspect` to unmarshal to any object rather than only the built-in types.
 	// This is useful for anyone wrapping the API and providing more metadata (e.g. classic swarm)
 	// To must be a pointer or it may cause a panic.
@@ -37,29 +37,23 @@ func (s *Service) Inspect(ctx context.Context, name string, opts ...InspectOptio
 }
 
 func handleInspect(ctx context.Context, tr transport.Doer, name string, opts ...InspectOption) (containerapi.ContainerInspect, error) {
-	cfg := InspectConfig{
-		DecodeLimitBytes: DefaultInspectDecodeLimitBytes,
-	}
+	cfg := InspectConfig{}
 	for _, o := range opts {
 		o(&cfg)
 	}
 
 	var c containerapi.ContainerInspect
 
-	resp, err := tr.Do(ctx, http.MethodGet, "/containers/"+name+"/json")
+	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
+		return tr.Do(ctx, http.MethodGet, version.Join(ctx, "/containers/"+name+"/json"))
+	})
 	if err != nil {
 		return c, err
 	}
 
 	defer resp.Body.Close()
 
-	var rdr io.Reader = resp.Body
-
-	if cfg.DecodeLimitBytes > 0 {
-		rdr = io.LimitReader(rdr, cfg.DecodeLimitBytes)
-	}
-
-	data, err := ioutil.ReadAll(rdr)
+	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return c, nil
 	}

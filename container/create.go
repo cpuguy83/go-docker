@@ -4,24 +4,22 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"github.com/cpuguy83/go-docker/httputil"
+
+	"github.com/cpuguy83/go-docker/version"
 
 	"github.com/cpuguy83/go-docker/container/containerapi"
 	"github.com/pkg/errors"
 )
 
-// DefaultCreateDecodeLimitBytes is the default max size that will be read from a container create response.
-// This value is used if no value is set on CreateConfig.
-const DefaultCreateDecodeLimitBytes = 64 * 1024
-
 // CreateConfig holds the options for creating a container
 type CreateConfig struct {
-	Spec             Spec
-	DecodeLimitBytes int64
-	Name             string
+	Spec Spec
+	Name string
 }
 
 // Spec holds all the configuration for the container create API request
@@ -39,8 +37,7 @@ type Spec struct {
 // TODO: Should "image" be moved to a dedicated function argument?
 func (s *Service) Create(ctx context.Context, opts ...CreateOption) (*Container, error) {
 	c := CreateConfig{
-		Spec:             Spec{},
-		DecodeLimitBytes: DefaultCreateDecodeLimitBytes,
+		Spec: Spec{},
 	}
 	for _, o := range opts {
 		o(&c)
@@ -59,15 +56,16 @@ func (s *Service) Create(ctx context.Context, opts ...CreateOption) (*Container,
 			return nil
 		}
 	}
-	resp, err := s.tr.Do(ctx, http.MethodPost, "/containers/create", withJSONBody(c.Spec), withName)
+
+	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
+		return s.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/create"), withJSONBody(c.Spec), withName)
+	})
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	body := io.LimitReader(resp.Body, c.DecodeLimitBytes)
-
-	data, err := ioutil.ReadAll(body)
+	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "error reading response body")
 	}

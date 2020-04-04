@@ -4,6 +4,9 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+
+	"github.com/cpuguy83/go-docker/httputil"
+	"github.com/cpuguy83/go-docker/version"
 )
 
 // RemoveOption is used as functional arguments for container remove
@@ -38,7 +41,9 @@ func (s *Service) Remove(ctx context.Context, name string, opts ...RemoveOption)
 		return nil
 	}
 
-	resp, err := s.tr.Do(ctx, http.MethodDelete, "/containers/"+name, withRemoveConfig)
+	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
+		return s.tr.Do(ctx, http.MethodDelete, version.Join(ctx, "/containers/"+name), withRemoveConfig)
+	})
 	if err != nil {
 		return err
 	}
