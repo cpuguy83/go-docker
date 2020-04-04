@@ -47,7 +47,7 @@ func NewClient(opts ...NewClientOption) *Client {
 
 // WithTransport is a NewClientOption that sets the transport to be used for the client.
 func WithTransport(tr transport.Doer) NewClientOption {
-	return func(cfg *NewClientConfig{
+	return func(cfg *NewClientConfig) {
 		cfg.Transport = tr
-	})
+	}
 }
