@@ -5,8 +5,8 @@ package docker provides a client for accessing the Docker API.
 
 All client operations are dependent on a transport. Transports are defined in the transport package. You can implement your own, here is the interface:
 
-// RequestOpt is as functional arguments to configure an HTTP request for a Doer.
-type RequestOpt func(*http.Request) error
+	// RequestOpt is as functional arguments to configure an HTTP request for a Doer.
+	type RequestOpt func(*http.Request) error
 
 	// Doer performs an http request for Client
 	// It is the Doer's responsibility to deal with setting the host details on
