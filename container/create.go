@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 
 	"github.com/cpuguy83/go-docker/httputil"
 
 	"github.com/cpuguy83/go-docker/version"
 
-	"github.com/cpuguy83/go-docker/container/containerapi"
 	"github.com/pkg/errors"
+
+	"github.com/cpuguy83/go-docker/container/containerapi"
 )
 
 // CreateConfig holds the options for creating a container
@@ -47,10 +47,6 @@ func (s *Service) Create(ctx context.Context, opts ...CreateOption) (*Container,
 	if c.Name != "" {
 		withName = func(req *http.Request) error {
 			q := req.URL.Query()
-			if q == nil {
-				q = url.Values{}
-			}
-
 			q.Set("name", c.Name)
 			req.URL.RawQuery = q.Encode()
 			return nil

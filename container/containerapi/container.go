@@ -6,6 +6,24 @@ import (
 	"github.com/cpuguy83/go-docker/container/containerapi/mount"
 )
 
+type Container struct {
+	ID         string `json:"Id"`
+	Names      []string
+	Image      string
+	ImageID    string
+	Command    string
+	Created    int64
+	Ports      []Port
+	SizeRw     int64 `json:",omitempty"`
+	SizeRootFs int64 `json:",omitempty"`
+	Labels     map[string]string
+	State      string
+	Status     string
+	HostConfig struct {
+		NetworkMode string `json:",omitempty"`
+	}
+}
+
 // ContainerInspect is newly used struct along with MountPoint
 type ContainerInspect struct {
 	ID              string `json:"Id"`

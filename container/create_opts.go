@@ -75,3 +75,10 @@ func WithCreateAttachStdout(cfg *CreateConfig) {
 func WithCreateAttachStderr(cfg *CreateConfig) {
 	cfg.Spec.AttachStderr = true
 }
+
+// WithCreateLabels is a CreateOption which sets the labels to attach to the container
+func WithCreateLabels(labels map[string]string) CreateOption {
+	return func(c *CreateConfig) {
+		c.Spec.Config.Labels = labels
+	}
+}
