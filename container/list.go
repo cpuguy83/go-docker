@@ -27,7 +27,7 @@ type ListConfig struct {
 type ListOption func(config *ListConfig)
 
 // List returns the list of containers in the docker host.
-func (s *Service) List(ctx context.Context, opts ...ListOption) ([]containerapi.Container, error) {
+func (s *Service) List(ctx context.Context, opts ...ListOption) ([]containerapi.ContainerSummary, error) {
 	c := ListConfig{
 		Limit: -1,
 	}
@@ -36,7 +36,7 @@ func (s *Service) List(ctx context.Context, opts ...ListOption) ([]containerapi.
 	}
 
 	var (
-		containers []containerapi.Container
+		containers []containerapi.ContainerSummary
 		query      = url.Values{}
 	)
 

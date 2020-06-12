@@ -6,7 +6,8 @@ import (
 	"github.com/cpuguy83/go-docker/container/containerapi/mount"
 )
 
-type Container struct {
+// ContainerSummary is the summary of a container
+type ContainerSummary struct {
 	ID         string `json:"Id"`
 	Names      []string
 	Image      string
