@@ -1,0 +1,3 @@
+test:
+	docker pull busybox:latest
+	go test ./...
