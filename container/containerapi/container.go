@@ -6,6 +6,26 @@ import (
 	"github.com/cpuguy83/go-docker/container/containerapi/mount"
 )
 
+// Container represents a container
+type Container struct {
+	ID              string `json:"Id"`
+	Names           []string
+	Created         int
+	Path            string
+	Args            []string
+	State           string
+	Image           string
+	ImageID         string
+	Command         string
+	Ports           []NetworkPort
+	Labels          map[string]string
+	HostConfig      *HostConfig
+	NetworkSettings *NetworkSettings
+	Mounts          []MountPoint
+	SizeRootFs      int
+	SizeRw          int
+}
+
 // ContainerInspect is newly used struct along with MountPoint
 type ContainerInspect struct {
 	ID              string `json:"Id"`
@@ -39,6 +59,14 @@ type ContainerInspect struct {
 type NetworkAddress struct {
 	Addr      string
 	PrefixLen int
+}
+
+// NetworkPort represents a network port
+type NetworkPort struct {
+	IP          string
+	PrivatePort int
+	PublicPort  int
+	Type        string
 }
 
 // NetworkSettings exposes the network settings in the api
