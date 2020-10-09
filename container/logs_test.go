@@ -186,14 +186,13 @@ func TestLogsTimestamps(t *testing.T) {
 	_, err = io.ReadFull(r, header)
 	assert.NilError(t, err)
 
-	t.Logf("%x", header)
-
 	ts, err := r.ReadString(' ')
 	assert.NilError(t, err)
 
 	parsedTime, err := time.Parse("2006-01-02T15:04:05.999999999Z", ts[:len(ts)-1])
-	now := time.Now()
+	now := time.Now().UTC()
+	t.Logf("%s", now)
 	assert.Assert(t, parsedTime.Year() == now.Year(), "expected parsed year to be %d but received %d", now.Year(), parsedTime.Year())
-	assert.Assert(t, parsedTime.Month() == now.Month(), "expected parsed month to be %s but received %s", now.Month(), parsedTime.Year())
+	assert.Assert(t, parsedTime.Month() == now.Month(), "expected parsed month to be %s but received %s", now.Month(), parsedTime.Month())
 	assert.Assert(t, parsedTime.Day() == now.Day(), "expected parsed day to be %d but received %d", now.Day(), parsedTime.Day())
 }
