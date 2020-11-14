@@ -6,9 +6,8 @@ import (
 	"net/http"
 )
 
-func DefaultUnixTransport() *Transport {
-	t, _ := UnixSocketTransport("/var/run/docker.sock")
-	return t
+func DefaultUnixTransport() (*Transport, error) {
+	return UnixSocketTransport("/var/run/docker.sock")
 }
 
 // UnixSocketTransport creates a Transport that works for unix sockets.

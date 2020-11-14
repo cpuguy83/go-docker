@@ -7,9 +7,8 @@ import (
 	"net/url"
 )
 
-func DefaultWindowsTransport() *Transport {
-	t, _ := NpipeTransport("//./pipe/docker_engine")
-	return t
+func DefaultWindowsTransport() (*Transport, error) {
+	return NpipeTransport("//./pipe/docker_engine")
 }
 
 func NpipeTransport(path string, opts ...ConnectionOption) (*Transport, error) {

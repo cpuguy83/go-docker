@@ -7,6 +7,6 @@ import (
 )
 
 func newTestService(t *testing.T) *Service {
-	tr := testutils.NewDefaultTestTransport(t)
+	tr, _ := testutils.NewDefaultTestTransport(t)
 	return NewService(tr)
 }

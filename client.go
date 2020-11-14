@@ -34,8 +34,7 @@ func NewClient(opts ...NewClientOption) *Client {
 	}
 	tr := cfg.Transport
 	if tr == nil {
-		// TODO: make this platform specific
-		tr = transport.DefaultUnixTransport()
+		tr, _ = transport.DefaultTransport()
 	}
 	return &Client{tr: tr}
 }
