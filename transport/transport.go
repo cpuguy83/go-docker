@@ -127,15 +127,17 @@ type ConnectionConfig struct {
 //
 // The URL's scheme must specify the protocol ("unix", "tcp", etc.)
 //
-// TODO: implement named pipes (windows) and ssh schemes.
+// TODO: implement ssh schemes.
 func FromConnectionURL(u *url.URL, opts ...ConnectionOption) (*Transport, error) {
 	switch u.Scheme {
 	case "unix":
 		return UnixSocketTransport(path.Join(u.Host, u.Path), opts...)
 	case "tcp":
 		return TCPTransport(u.Host, opts...)
+	case "npipe":
+		return NpipeTransport(u.Path, opts...)
 	default:
-		// TODO: npipe, ssh
+		// TODO: ssh
 		return nil, errors.Errorf("protocol not supported: %s", u.Scheme)
 	}
 }

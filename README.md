@@ -56,7 +56,10 @@ Once you have a transport you can create a client:
 
 ```go
 // create a transport that connects over /var/run/docker.sock
-tr := transport.DefaultUnixTransport()
+tr, err := transport.DefaultUnixTransport()
+if err != nil {
+	panic(err)
+}
 client := NewClient(WithTransport(tr))
 ```
 

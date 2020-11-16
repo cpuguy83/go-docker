@@ -28,7 +28,10 @@ The package contains a default transport that you can use directly, or wrap, as 
 Once you have a transport you can create a client:
 
 	// create a transport that connects over /var/run/docker.sock
-	tr := transport.DefaultUnixTransport()
+	tr, err := transport.DefaultUnixTransport()
+	if err != nil {
+		panic(err)
+	}
 	client := NewClient(WithTransport(tr))
 
 Or if you don’t provide a transport, the default for the platform will be used.

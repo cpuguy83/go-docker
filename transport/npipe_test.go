@@ -1,27 +1,21 @@
-// +build unix
+// +build windows
 
 package transport
 
 import (
 	"context"
 	"io"
-	"io/ioutil"
-	"net"
 	"net/http"
-	"os"
-	"path/filepath"
 	"testing"
 
+	"github.com/Microsoft/go-winio"
 	"gotest.tools/assert"
 )
 
-func TestUnixTransport(t *testing.T) {
-	dir, err := ioutil.TempDir("", t.Name())
-	assert.NilError(t, err)
-	defer os.RemoveAll(dir)
+var testPipeName = `\\.\pipe\winiotestpipe`
 
-	sockPath := filepath.Join(dir, "test.sock")
-	l, err := net.Listen("unix", sockPath)
+func TestWindowsTransport(t *testing.T) {
+	l, err := winio.ListenPipe(testPipeName, nil)
 	assert.NilError(t, err)
 	defer l.Close()
 
@@ -31,7 +25,7 @@ func TestUnixTransport(t *testing.T) {
 
 	ctx := context.Background()
 
-	tr, err := UnixSocketTransport(sockPath)
+	tr, err := NpipeTransport(testPipeName)
 	assert.NilError(t, err)
 
 	resp, err := tr.Do(ctx, "GET", "/foo")
