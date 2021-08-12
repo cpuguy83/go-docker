@@ -42,7 +42,7 @@ type ListConfig struct {
 }
 
 // ListOption is used as functional arguments to list containers
-// ListOption configure an InspectConfig.
+// ListOption configure a ListConfig.
 type ListOption func(config *ListConfig)
 
 // List fetches a list of containers.
