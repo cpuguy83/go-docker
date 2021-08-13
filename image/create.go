@@ -2,6 +2,7 @@ package image
 
 import (
 	"context"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/cpuguy83/go-docker/httputil"
@@ -41,6 +42,12 @@ func (s *Service) Create(ctx context.Context, opts ...CreateOption) error {
 	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
 		return s.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/images/create"), withCreateConfig)
 	})
+	if err != nil {
+		return err
+	}
+	// Reading all is required otherwise the docker daemon considers the context
+	// as cancelled and the pulling is aborted.
+	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
