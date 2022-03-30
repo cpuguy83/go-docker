@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"os/exec"
 	"testing"
 
 	"github.com/cpuguy83/go-docker/image"
@@ -22,9 +23,8 @@ func TestLoad(t *testing.T) {
 	})
 	assert.NilError(t, err, "expected pulling hello-world to succeed")
 
-	bundle, err := s.ExportBundle(ctx, func(config *image.ExportBundleConfig) {
-		config.Names = []string{"hello-world:latest", "hello-world:latest"}
-	})
+	cmd := exec.Command("docker", "image", "save", "hello-world:latest")
+	bundle, err := cmd.CombinedOutput()
 	assert.NilError(t, err, "expected exporting hello-world to succeed")
 
 	err = s.Load(ctx, io.NopCloser(bytes.NewReader(bundle)), func(config *image.LoadConfig) {
