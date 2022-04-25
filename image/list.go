@@ -63,18 +63,18 @@ func (s *Service) List(ctx context.Context, opts ...ListOption) ([]imageapi.Imag
 		return s.tr.Do(ctx, http.MethodGet, version.Join(ctx, "/images/json"), withListConfig)
 	})
 	if err != nil {
-		return images, err
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return images, nil
+		return nil, err
 	}
 
 	if err := json.Unmarshal(data, &images); err != nil {
-		return images, errors.Wrap(err, "error unmarshalling container json")
+		return nil, errors.Wrap(err, "error unmarshalling container json")
 	}
 
 	return images, nil
