@@ -2,10 +2,10 @@ package httputil
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/cpuguy83/go-docker/errdefs"
-	"github.com/pkg/errors"
 )
 
 type errorResponse struct {
@@ -27,7 +27,7 @@ func CheckResponseError(resp *http.Response) error {
 	var e errorResponse
 	if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
 		resp.Body.Close()
-		return errors.Wrap(fromStatusCode(err, resp.StatusCode), "error unmarshaling server error response")
+		return errdefs.Wrap(fromStatusCode(err, resp.StatusCode), "error unmarshaling server error response")
 	}
 
 	return fromStatusCode(&e, resp.StatusCode)
@@ -37,12 +37,12 @@ func fromStatusCode(err error, statusCode int) error {
 	if err == nil {
 		return err
 	}
-	err = errors.Wrapf(err, "error in response, status code: %d", statusCode)
+	err = fmt.Errorf("%w: error in response, status code: %d", err, statusCode)
 	switch statusCode {
 	case http.StatusNotFound:
 		err = errdefs.AsNotFound(err)
 	case http.StatusBadRequest:
-		err = errdefs.AsInvalidInput(err)
+		err = errdefs.AsInvalid(err)
 	case http.StatusConflict:
 		err = errdefs.AsConflict(err)
 	case http.StatusUnauthorized:
@@ -57,7 +57,7 @@ func fromStatusCode(err error, statusCode int) error {
 		err = errdefs.AsNotImplemented(err)
 	default:
 		if statusCode >= 400 && statusCode < 500 {
-			err = errdefs.AsInvalidInput(err)
+			err = errdefs.AsInvalid(err)
 		}
 	}
 	return err

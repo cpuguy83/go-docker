@@ -25,7 +25,7 @@ func TestKill(t *testing.T) {
 	assert.NilError(t, c.Start(ctx))
 
 	err = c.Kill(ctx, WithKillSignal("FAKESIG"))
-	assert.Check(t, errdefs.IsInvalidInput(err), err)
+	assert.Check(t, errdefs.IsInvalid(err), err)
 
 	err = c.Kill(ctx, WithKillSignal("SIGUSR1"))
 	assert.NilError(t, err)

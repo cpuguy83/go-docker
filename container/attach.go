@@ -2,15 +2,15 @@ package container
 
 import (
 	"context"
-	"github.com/cpuguy83/go-docker/version"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 
 	"github.com/cpuguy83/go-docker/container/streamutil"
+	"github.com/cpuguy83/go-docker/errdefs"
 	"github.com/cpuguy83/go-docker/transport"
-	"github.com/pkg/errors"
+	"github.com/cpuguy83/go-docker/version"
 )
 
 // AttachOption is used as functional arguments to container attach
@@ -119,7 +119,7 @@ func handleAttach(ctx context.Context, tr transport.Doer, name string, cfg Attac
 	if cfg.Stdout {
 		info, err := handleInspect(ctx, tr, name)
 		if err != nil {
-			return nil, errors.Wrap(err, "error getting container details")
+			return nil, errdefs.Wrap(err, "error getting container details")
 		}
 		isTTY = info.Config.Tty
 	}

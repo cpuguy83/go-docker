@@ -1,9 +1,10 @@
 package streamutil
 
 import (
+	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
+	"github.com/cpuguy83/go-docker/errdefs"
 )
 
 // StdCopy will de-multiplex `src`, assuming that it contains two streams,
@@ -38,17 +39,17 @@ func StdCopy(dstout, dsterr io.Writer, src io.Reader) (written int64, retErr err
 			// Limit the size of this message to the size of our buffer to prevent memory exhaustion
 			n, err := rdr.Read(buf)
 			if err != nil {
-				return written, errors.Wrapf(err, "error while copying system error from stdio stream, truncated message=%q", buf[:n])
+				return written, errdefs.Wrapf(err, "error while copying system error from stdio stream, truncated message=%q", buf[:n])
 			}
-			return written, errors.Errorf("%s", buf[:n])
+			return written, fmt.Errorf("%s", buf[:n])
 		default:
-			return written, errors.Errorf("got data for unknown stream id: %d", hdr.Descriptor)
+			return written, fmt.Errorf("got data for unknown stream id: %d", hdr.Descriptor)
 		}
 
 		n, err := io.CopyBuffer(out, rdr, buf)
 		written += n
 		if err != nil {
-			return written, errors.Wrap(err, "got error while copying to stream")
+			return written, errdefs.Wrap(err, "got error while copying to stream")
 		}
 	}
 }

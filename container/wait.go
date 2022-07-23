@@ -3,11 +3,12 @@ package container
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
+	"github.com/cpuguy83/go-docker/errdefs"
 	"github.com/cpuguy83/go-docker/httputil"
 	"github.com/cpuguy83/go-docker/version"
-	"github.com/pkg/errors"
 )
 
 // WaitCondition is a type used to specify a container state for which
@@ -89,7 +90,7 @@ func (c *Container) Wait(ctx context.Context, opts ...WaitOption) (ExitStatus, e
 
 	var ws waitStatus
 	if err := json.NewDecoder(resp.Body).Decode(&ws); err != nil {
-		return nil, errors.Wrap(err, "could not decode resp")
+		return nil, errdefs.Wrap(err, "could not decode resp")
 	}
 
 	if ws.Err != nil && ws.Err.Message != "" {

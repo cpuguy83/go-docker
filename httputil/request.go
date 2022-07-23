@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/pkg/errors"
+	"github.com/cpuguy83/go-docker/errdefs"
 )
 
 // DoRequest performs the passed in function, passing it the provided context.
@@ -17,7 +17,7 @@ import (
 func DoRequest(ctx context.Context, do func(context.Context) (*http.Response, error)) (*http.Response, error) {
 	resp, err := do(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "error doing request")
+		return nil, errdefs.Wrap(err, "error doing request")
 	}
 
 	LimitResponse(ctx, resp)

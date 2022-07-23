@@ -3,17 +3,15 @@ package container
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
 
+	"github.com/cpuguy83/go-docker/errdefs"
 	"github.com/cpuguy83/go-docker/httputil"
-
-	"github.com/cpuguy83/go-docker/version"
-
-	"github.com/pkg/errors"
-
 	"github.com/cpuguy83/go-docker/transport"
+	"github.com/cpuguy83/go-docker/version"
 )
 
 // DefaultExecDecodeLimitBytes is the default max size that will be read from a container create response.
@@ -73,12 +71,12 @@ func (c *Container) Exec(ctx context.Context, opts ...ExecOption) (*ExecProcess,
 
 	ct := resp.Header.Get("Content-Type")
 	if ct != "application/json" {
-		return nil, errors.Errorf("expected response Content-Type=application/json for exec create response, got: %s", ct)
+		return nil, fmt.Errorf("expected response Content-Type=application/json for exec create response, got: %s", ct)
 	}
 
 	var id execCreateResponse
 	if err := json.NewDecoder(resp.Body).Decode(&id); err != nil {
-		return nil, errors.Wrap(err, "error decoding exec create response body")
+		return nil, errdefs.Wrap(err, "error decoding exec create response body")
 	}
 
 	return &ExecProcess{id: id.ID, tr: c.tr}, nil
@@ -174,11 +172,11 @@ func (e *ExecProcess) Inspect(ctx context.Context, opts ...ExecInspectOption) (E
 	defer resp.Body.Close()
 
 	if ct := resp.Header.Get("Content-Type"); ct != "application/json" {
-		return inspect, errors.Errorf("expected response Content-Type=application/json for exec create response, got: %s", ct)
+		return inspect, fmt.Errorf("expected response Content-Type=application/json for exec create response, got: %s", ct)
 	}
 
 	if err := json.NewDecoder(io.LimitReader(resp.Body, cfg.DecodeLimitBytes)).Decode(&inspect); err != nil {
-		return inspect, errors.Wrap(err, "error decoding exec inspect response")
+		return inspect, errdefs.Wrap(err, "error decoding exec inspect response")
 	}
 	return inspect, nil
 }

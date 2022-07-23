@@ -3,6 +3,7 @@ package system
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/cpuguy83/go-docker/transport"
-	"github.com/pkg/errors"
 	"gotest.tools/assert"
 	"gotest.tools/assert/cmp"
 )

@@ -2,10 +2,10 @@ package streamutil
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 
 	"github.com/cpuguy83/go-docker/errdefs"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -69,7 +69,7 @@ func (s *StdReader) Next() (*StdHeader, error) {
 		if err == io.EOF {
 			s.err = err
 		} else {
-			s.err = errors.Wrap(err, "error reading log message header")
+			s.err = errdefs.Wrap(err, "error reading log message header")
 		}
 		return nil, s.err
 	}
@@ -85,7 +85,7 @@ func (s *StdReader) Next() (*StdHeader, error) {
 	case Stdout, Stderr, Systemerr:
 		s.hdr.Descriptor = fd
 	default:
-		s.err = errors.Errorf("malformed stream, got unexpected stream descriptor in header %d", fd)
+		s.err = fmt.Errorf("malformed stream, got unexpected stream descriptor in header %d", fd)
 		return nil, s.err
 	}
 

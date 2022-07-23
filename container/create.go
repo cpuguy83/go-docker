@@ -4,16 +4,15 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 
-	"github.com/cpuguy83/go-docker/httputil"
-
-	"github.com/cpuguy83/go-docker/version"
-
 	"github.com/cpuguy83/go-docker/container/containerapi"
-	"github.com/pkg/errors"
+	"github.com/cpuguy83/go-docker/errdefs"
+	"github.com/cpuguy83/go-docker/httputil"
+	"github.com/cpuguy83/go-docker/version"
 )
 
 // CreateConfig holds the options for creating a container
@@ -67,16 +66,16 @@ func (s *Service) Create(ctx context.Context, opts ...CreateOption) (*Container,
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return nil, errdefs.Wrap(err, "error reading response body")
 	}
 
 	var cc containerCreateResponse
 	if err := json.Unmarshal(data, &cc); err != nil {
-		return nil, errors.Wrap(err, "error decoding container create response")
+		return nil, errdefs.Wrap(err, "error decoding container create response")
 	}
 
 	if cc.ID == "" {
-		return nil, errors.Errorf("empty ID in response: %v", string(data))
+		return nil, fmt.Errorf("empty ID in response: %v", string(data))
 	}
 	return &Container{id: cc.ID, tr: s.tr}, nil
 }
@@ -89,7 +88,7 @@ func withJSONBody(v interface{}) func(req *http.Request) error {
 	return func(req *http.Request) error {
 		data, err := json.Marshal(v)
 		if err != nil {
-			return errors.Wrap(err, "error marshaling json body")
+			return errdefs.Wrap(err, "error marshaling json body")
 		}
 		req.Body = ioutil.NopCloser(bytes.NewReader(data))
 		if req.Header == nil {

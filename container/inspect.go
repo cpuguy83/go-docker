@@ -6,13 +6,11 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/cpuguy83/go-docker/httputil"
-
-	"github.com/cpuguy83/go-docker/version"
-
 	"github.com/cpuguy83/go-docker/container/containerapi"
+	"github.com/cpuguy83/go-docker/errdefs"
+	"github.com/cpuguy83/go-docker/httputil"
 	"github.com/cpuguy83/go-docker/transport"
-	"github.com/pkg/errors"
+	"github.com/cpuguy83/go-docker/version"
 )
 
 // DefaultInspectDecodeLimitBytes is the default value used for limit how much data is read from the inspect response.
@@ -60,13 +58,13 @@ func handleInspect(ctx context.Context, tr transport.Doer, name string, opts ...
 
 	if cfg.To != nil {
 		if err := json.Unmarshal(data, cfg.To); err != nil {
-			return c, errors.Wrap(err, "error unmarshalling to requested type")
+			return c, errdefs.Wrap(err, "error unmarshalling to requested type")
 		}
 		return c, nil
 	}
 
 	if err := json.Unmarshal(data, &c); err != nil {
-		return c, errors.Wrap(err, "error unmarshalling container json")
+		return c, errdefs.Wrap(err, "error unmarshalling container json")
 	}
 
 	return c, nil

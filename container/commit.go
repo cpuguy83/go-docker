@@ -8,9 +8,9 @@ import (
 	"strconv"
 
 	"github.com/cpuguy83/go-docker/container/containerapi"
+	"github.com/cpuguy83/go-docker/errdefs"
 	"github.com/cpuguy83/go-docker/httputil"
 	"github.com/cpuguy83/go-docker/version"
-	"github.com/pkg/errors"
 )
 
 // CommitOption is used as a funtional option when commiting a container to an
@@ -77,18 +77,18 @@ func (c *Container) Commit(ctx context.Context, opts ...CommitOption) (string, e
 		return c.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/commit"), withOptions)
 	})
 	if err != nil {
-		return "", errors.Wrap(err, "error commiting container")
+		return "", errdefs.Wrap(err, "error commiting container")
 	}
 	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", errors.Wrap(err, "error reading response body")
+		return "", errdefs.Wrap(err, "error reading response body")
 	}
 
 	var r containerCommitResponse
 	if err := json.Unmarshal(b, &r); err != nil {
-		return "", errors.Wrap(err, "error unmarshalling response")
+		return "", errdefs.Wrap(err, "error unmarshalling response")
 	}
 	return r.ID, nil
 }

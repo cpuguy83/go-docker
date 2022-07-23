@@ -8,11 +8,10 @@ import (
 	"strconv"
 
 	"github.com/cpuguy83/go-docker/container/containerapi"
+	"github.com/cpuguy83/go-docker/errdefs"
 	"github.com/cpuguy83/go-docker/httputil"
 
 	"github.com/cpuguy83/go-docker/version"
-
-	"github.com/pkg/errors"
 )
 
 // ListFilter represents filters to process on the container list.
@@ -88,7 +87,7 @@ func (s *Service) List(ctx context.Context, opts ...ListOption) ([]containerapi.
 	}
 
 	if err := json.Unmarshal(data, &containers); err != nil {
-		return containers, errors.Wrap(err, "error unmarshalling container json")
+		return containers, errdefs.Wrap(err, "error unmarshalling container json")
 	}
 
 	return containers, nil

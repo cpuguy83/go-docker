@@ -14,7 +14,7 @@ func TestCreate(t *testing.T) {
 	s := newTestService(t)
 
 	c, err := s.Create(ctx)
-	assert.Check(t, errdefs.IsInvalidInput(err), err)
+	assert.Check(t, errdefs.IsInvalid(err), err)
 	assert.Check(t, c == nil)
 	if c != nil {
 		if err := s.Remove(ctx, c.ID(), WithRemoveForce); err != nil && !errdefs.IsNotFound(err) {

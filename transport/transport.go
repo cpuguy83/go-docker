@@ -3,14 +3,13 @@ package transport
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"path"
-
-	"github.com/pkg/errors"
 )
 
 // Doer performs an http request for Client
@@ -92,7 +91,7 @@ func (t *Transport) DoRaw(ctx context.Context, method, uri string, opts ...Reque
 		}
 		if resp.StatusCode != http.StatusSwitchingProtocols {
 			resp.Body.Close()
-			return nil, errors.Errorf("unable to upgrade to %s, received %d", proto, resp.StatusCode)
+			return nil, fmt.Errorf("unable to upgrade to %s, received %d", proto, resp.StatusCode)
 		}
 	}
 
@@ -138,6 +137,6 @@ func FromConnectionURL(u *url.URL, opts ...ConnectionOption) (*Transport, error)
 		return NpipeTransport(u.Path, opts...)
 	default:
 		// TODO: ssh
-		return nil, errors.Errorf("protocol not supported: %s", u.Scheme)
+		return nil, fmt.Errorf("protocol not supported: %s", u.Scheme)
 	}
 }

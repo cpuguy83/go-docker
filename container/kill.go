@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/cpuguy83/go-docker/errdefs"
 	"github.com/cpuguy83/go-docker/httputil"
 	"github.com/cpuguy83/go-docker/transport"
 	"github.com/cpuguy83/go-docker/version"
-	"github.com/pkg/errors"
 )
 
 // KillOption is a functional argument passed to `Kill`, it is used to configure a KillConfig
@@ -45,7 +45,7 @@ func handleKill(ctx context.Context, tr transport.Doer, name string, opts ...Kil
 		})
 	})
 	if err != nil {
-		return errors.Wrap(err, "error sending signal")
+		return errdefs.Wrap(err, "error sending signal")
 	}
 	resp.Body.Close()
 	return nil
