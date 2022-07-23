@@ -20,7 +20,8 @@ func TestRemove(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Check(t, s.Remove(ctx, c.ID()), "leaked container: %s", c.ID())
 
-	c, err = s.Create(ctx, WithCreateImage("busybox:latest"))
+	c, err = s.Create(ctx, WithCreateImage("busybox:latest"), WithCreateCmd("top"))
+	assert.NilError(t, err)
 	assert.Assert(t, c.Start(ctx))
 	err = s.Remove(ctx, c.ID())
 	assert.Assert(t, errdefs.IsConflict(err), err)
