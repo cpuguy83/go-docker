@@ -3,7 +3,7 @@ package container
 import (
 	"bufio"
 	"context"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 	"io"
 	"io/ioutil"
 	"strconv"

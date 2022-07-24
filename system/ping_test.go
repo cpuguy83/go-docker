@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"github.com/cpuguy83/go-docker/transport"
-	"gotest.tools/assert"
-	"gotest.tools/assert/cmp"
+	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 )
 
 type mockDoer struct {

@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"gotest.tools/assert/cmp"
+	"gotest.tools/v3/assert/cmp"
 
 	"github.com/cpuguy83/go-docker/errdefs"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestInspect(t *testing.T) {

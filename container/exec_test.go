@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/cpuguy83/go-docker/errdefs"
-	"gotest.tools/assert"
-	"gotest.tools/assert/cmp"
+	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 )
 
 func TestExec(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"testing"
 
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestTCPTransport(t *testing.T) {

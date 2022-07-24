@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/Microsoft/go-winio"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 var testPipeName = `\\.\pipe\winiotestpipe`

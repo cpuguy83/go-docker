@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/cpuguy83/go-docker/errdefs"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestCreate(t *testing.T) {

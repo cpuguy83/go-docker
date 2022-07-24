@@ -8,7 +8,7 @@ import (
 	"github.com/cpuguy83/go-docker/testutils"
 
 	"github.com/cpuguy83/go-docker/errdefs"
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestWait(t *testing.T) {
