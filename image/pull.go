@@ -23,65 +23,52 @@ type PullConfig struct {
 	//
 	// If not set, the default platform for the daemon will be used.
 	Platform string
-	// NewProgressDecoder is used to decode the pull progress.
-	// The created decoder will be called until it returns io.EOF or some other error.
-	// Any error other than io.EOF will cause the Pull function to return with that error.
-	// If nil, the progress will be discarded.
-	NewProgressDecoder func(rdr io.Reader) Decoder
+	// ConsumeProgress is called after a pull response is received to consume the progress messages from the response body.
+	// ConSumeProgress should not return until EOF is reached on the passed in stream or it may cause the pull to be cancelled.
+	// If this is not set, progress messages are discarded.
+	ConsumeProgress StreamConsumer
 }
 
-// Decoder is used to decode the pull a stream of messages.
-type Decoder interface {
-	Decode(context.Context) error
-}
+// StreamConsumer is a function that consumes a stream of data, typically a stream of messages.
+type StreamConsumer func(context.Context, io.Reader) error
 
 // PullProgressDecoderV1 is a decoder for the v1 progress message.
-type PullProgressDecoderV1 struct {
-	dec    *json.Decoder
-	msg    *PullProgressMessageV1
-	notify func(context.Context, *PullProgressMessageV1) error
-	err    error
-}
-
 // PullProgressMessageV1 represents a message received from the Docker daemon during a pull operation.
-type PullProgressMessageV1 struct {
-	Status   string `json:"status"`
-	Detail   string `json:"progressDetail"`
+type PullProgressMessage struct {
+	Status   string `json:"status,omitempty"`
+	Progress string `json:"progress,omitempty"`
 	ID       string `json:"id"`
-	Progress struct {
+	Detail   struct {
 		Current int64 `json:"current"`
 		Total   int64 `json:"total"`
-	} `json:"progress"`
+	} `json:"progressDetail,omitempty"`
 }
 
-// Decode decodes the message and calls the notify function with the message.
-func (d *PullProgressDecoderV1) Decode(ctx context.Context) error {
-	if d.err != nil {
-		return d.err
-	}
-	if d.msg == nil {
-		d.msg = &PullProgressMessageV1{}
-	} else {
-		*d.msg = PullProgressMessageV1{}
-	}
-
-	if err := d.dec.Decode(d.msg); err != nil {
-		d.err = err
-		return err
-	}
-
-	d.notify(ctx, d.msg)
-	return nil
-}
-
-// WithPullProgressV1Decoder returns a PullOption that sets a decoder to decode using the PullProgressV1Decoder.
-// notifier must be set otherwise a panic will occur during pull.
-func WithPullProgressV1Decoder(notifier func(context.Context, *PullProgressMessageV1) error) PullOption {
+// WithPullProgressMessage returns a PullOption that sets a pull progress consumer.
+// The passed in callback will be called for each progress message.
+func WithPullProgressMessage(cb func(context.Context, PullProgressMessage) error) PullOption {
 	return func(cfg *PullConfig) error {
-		cfg.NewProgressDecoder = func(rdr io.Reader) Decoder {
-			return &PullProgressDecoderV1{
-				notify: notifier,
-				dec:    json.NewDecoder(rdr),
+		cfg.ConsumeProgress = func(ctx context.Context, r io.Reader) error {
+			dec := json.NewDecoder(r)
+			msg := &PullProgressMessage{}
+			for {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				default:
+				}
+
+				if err := dec.Decode(msg); err != nil {
+					if err == io.EOF {
+						return nil
+					}
+					return err
+				}
+
+				if err := cb(ctx, *msg); err != nil {
+					return err
+				}
+				*msg = PullProgressMessage{}
 			}
 		}
 		return nil
@@ -98,6 +85,13 @@ func (s *Service) Pull(ctx context.Context, remote Remote, opts ...PullOption) e
 
 	for _, opt := range opts {
 		if err := opt(&cfg); err != nil {
+			return err
+		}
+	}
+
+	if cfg.ConsumeProgress == nil {
+		cfg.ConsumeProgress = func(ctx context.Context, r io.Reader) error {
+			_, err := io.Copy(ioutil.Discard, r)
 			return err
 		}
 	}
@@ -147,26 +141,7 @@ func (s *Service) Pull(ctx context.Context, remote Remote, opts ...PullOption) e
 	}
 	defer resp.Body.Close()
 
-	if cfg.NewProgressDecoder == nil {
-		io.Copy(ioutil.Discard, resp.Body)
-		return nil
-	}
-
-	dec := cfg.NewProgressDecoder(resp.Body)
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		if err := dec.Decode(ctx); err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			return err
-		}
-	}
+	return cfg.ConsumeProgress(ctx, resp.Body)
 }
 
 type authConfig struct {
