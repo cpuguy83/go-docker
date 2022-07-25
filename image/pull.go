@@ -80,6 +80,7 @@ func WithPullProgressMessage(cb func(context.Context, PullProgressMessage) error
 type PullOption func(config *PullConfig) error
 
 // Pull pulls an image from a remote registry.
+// It is up to the caller to set a response size limit as the normal default limit is not used in this case.
 func (s *Service) Pull(ctx context.Context, remote Remote, opts ...PullOption) error {
 	cfg := PullConfig{}
 
@@ -133,6 +134,9 @@ func (s *Service) Pull(ctx context.Context, remote Remote, opts ...PullOption) e
 		return nil
 	}
 
+	// Set unlimited response size since this is going to be consumed by a progress reader.
+	// It's also pretty important to read the full body.
+	ctx = httputil.WithResponseLimitIfEmpty(ctx, httputil.UnlimitedResponseLimit)
 	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
 		return s.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/images/create"), withConfig)
 	})
