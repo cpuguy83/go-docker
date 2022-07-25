@@ -11,12 +11,26 @@ var (
 	DefaultResponseLimit int64 = 16 * 1024
 )
 
+const (
+	// UnlimitedResponseLimit is a value that can be used to indicate that a response should not be limited.
+	UnlimitedResponseLimit int64 = -1
+)
+
 type responseLimit struct{}
 
 // WithResponseLimit sets a limit for the max size to read from an http response.
 // This value will be used by the client to limit how much data will be consumed from http responses.
 func WithResponseLimit(ctx context.Context, limit int64) context.Context {
 	return context.WithValue(ctx, responseLimit{}, limit)
+}
+
+// WithResponseLimitIfEmpty is like WithResponseLimit, but only sets a limit if none is set.
+func WithResponseLimitIfEmpty(ctx context.Context, limit int64) context.Context {
+	v := ctx.Value(responseLimit{})
+	if v != nil {
+		return ctx
+	}
+	return WithResponseLimit(ctx, limit)
 }
 
 // LimitResponse limits the size of the response body.
@@ -32,6 +46,9 @@ func LimitResponse(ctx context.Context, resp *http.Response) {
 	v := ctx.Value(responseLimit{})
 	if v != nil {
 		limit = v.(int64)
+	}
+	if limit == UnlimitedResponseLimit {
+		return
 	}
 	limited := io.LimitReader(resp.Body, limit)
 	resp.Body = &wrapBody{limited, resp.Body}
