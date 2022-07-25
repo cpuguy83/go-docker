@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-const (
+var (
 	// The default limit used by the client when reading response bodies.
 	DefaultResponseLimit int64 = 16 * 1024
 )
