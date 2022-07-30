@@ -33,3 +33,21 @@ func Join(ctx context.Context, uri string) string {
 func FromEnv(ctx context.Context) context.Context {
 	return WithAPIVersion(ctx, os.Getenv("DOCKER_API_VERSION"))
 }
+
+// Negotiate looks at the version currently in ctx and the verion of the server.
+// It returns a context with the best api version to use.
+func Negotiate(ctx context.Context, srv string) context.Context {
+	if srv == "" {
+		srv = "1.24"
+	}
+
+	v := APIVersion(ctx)
+	if v == "" {
+		v = srv
+	}
+
+	if LessThan(srv, v) {
+		return WithAPIVersion(ctx, srv)
+	}
+	return WithAPIVersion(ctx, v)
+}
