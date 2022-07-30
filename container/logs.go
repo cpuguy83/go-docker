@@ -20,12 +20,17 @@ type LogReadConfig struct {
 	Timestamps bool   `json:"timestamps"`
 	Follow     bool   `json:"follow"`
 	Tail       string `json:"tail"`
-	Details    bool `json:"details,omitempty"`
+	Details    bool   `json:"details,omitempty"`
 }
 
-// TODO: wrap the returned reader in a struct?
-// TODO: Provide helper for consuming logs, maybe like daemon/logs does with a channel of discrete log messages?
-func (c *Container) Logs(ctx context.Context, opts ...LogsReadOption) (io.ReadCloser, error) {
+const (
+	mediaTypeMultiplexed = "application/vnd.docker.multiplexed-stream"
+)
+
+// Logs returns the logs for a container.
+// The logs may be a multiplexed stream with both stdout and stderr, in which case you'll need to split the stream using github.com/cpuguy83/go-docker/container/streamutil.StdCopy
+// The bool value returned indicates whether the logs are multiplexed or not.
+func (c *Container) Logs(ctx context.Context, opts ...LogsReadOption) (io.ReadCloser, bool, error) {
 	var cfg LogReadConfig
 	for _, o := range opts {
 		o(&cfg)
@@ -49,10 +54,20 @@ func (c *Container) Logs(ctx context.Context, opts ...LogsReadOption) (io.ReadCl
 	//  instead of with httputil.DoRequest
 	resp, err := c.tr.Do(ctx, http.MethodGet, version.Join(ctx, "/containers/"+c.id+"/logs"), withLogConfig)
 	if err != nil {
-		return nil, err
+		return nil, false, err
+	}
+
+	// Starting with api version 1.42, docker should returnn a header with the content-type indicating if the stream is multiplexed.
+	// If the api version is lower then we'll need to inspect the container to determine if the stream is multiplexed.
+	mux := resp.Header.Get("Content-Type") == mediaTypeMultiplexed
+	if !mux && version.LessThan(version.APIVersion(ctx), "1.42") {
+		inspect, err := c.Inspect(ctx)
+		if err == nil {
+			mux = !inspect.Config.Tty
+		}
 	}
 
 	body := resp.Body
 	httputil.LimitResponse(ctx, resp)
-	return body, httputil.CheckResponseError(resp)
+	return body, mux, httputil.CheckResponseError(resp)
 }
