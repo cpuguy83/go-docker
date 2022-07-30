@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/cpuguy83/go-docker/httputil"
 	"github.com/cpuguy83/go-docker/version"
@@ -44,9 +45,38 @@ type PullProgressMessage struct {
 	} `json:"progressDetail,omitempty"`
 }
 
+// PullProgressMessageHandler is used with `WithPullProgressMessage` to handle progress messages.
+type PullProgressMessageHandler func(context.Context, PullProgressMessage) error
+
+// PullProgressDigest wraps the past in handler with a progress callback suitable for `WithPullProgressMessage`
+// The past in callback is called when the digest of a pulled image is received.
+func PullProgressDigest(h func(ctx context.Context, digest string) error) PullProgressMessageHandler {
+	return func(ctx context.Context, msg PullProgressMessage) error {
+		_, right, ok := strings.Cut(msg.Status, "Digest:")
+		if !ok {
+			return nil
+		}
+		return h(ctx, strings.TrimSpace(right))
+	}
+}
+
+// PullProgressHandlers makes a PullProgressMessageHandler from a list of PullProgressMessageHandlers.
+// Handlers are executed in the order they are passed in.
+// An error in a handler will stop execution of the remaining handlers.
+func PullProgressHandlers(handlers ...PullProgressMessageHandler) PullProgressMessageHandler {
+	return func(ctx context.Context, msg PullProgressMessage) error {
+		for _, h := range handlers {
+			if err := h(ctx, msg); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
 // WithPullProgressMessage returns a PullOption that sets a pull progress consumer.
 // The passed in callback will be called for each progress message.
-func WithPullProgressMessage(cb func(context.Context, PullProgressMessage) error) PullOption {
+func WithPullProgressMessage(h PullProgressMessageHandler) PullOption {
 	return func(cfg *PullConfig) error {
 		cfg.ConsumeProgress = func(ctx context.Context, r io.Reader) error {
 			dec := json.NewDecoder(r)
@@ -65,7 +95,7 @@ func WithPullProgressMessage(cb func(context.Context, PullProgressMessage) error
 					return err
 				}
 
-				if err := cb(ctx, *msg); err != nil {
+				if err := h(ctx, *msg); err != nil {
 					return err
 				}
 				*msg = PullProgressMessage{}

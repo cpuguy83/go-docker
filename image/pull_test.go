@@ -2,9 +2,10 @@ package image
 
 import (
 	"context"
-	"strings"
+	"fmt"
 	"testing"
 
+	"github.com/opencontainers/go-digest"
 	"gotest.tools/v3/assert"
 )
 
@@ -12,15 +13,15 @@ func TestPull(t *testing.T) {
 	svc := newTestService(t)
 
 	ctx := context.Background()
-	var digest string
-	progress := func(ctx context.Context, msg PullProgressMessage) error {
-		_, right, ok := strings.Cut(msg.Status, "Digest:")
-		if ok {
-			digest = right
+	var dgst string
+	digestFn := func(ctx context.Context, s string) error {
+		if _, err := digest.Parse(s); err != nil {
+			return fmt.Errorf("%w: %s", err, s)
 		}
+		dgst = s
 		return nil
 	}
-	err := svc.Pull(ctx, Remote{Locator: "busybox", Tag: "latest"}, WithPullProgressMessage(progress))
+	err := svc.Pull(ctx, Remote{Locator: "busybox", Tag: "latest"}, WithPullProgressMessage(PullProgressDigest(digestFn)))
 	assert.NilError(t, err)
-	assert.Assert(t, digest != "")
+	assert.Assert(t, dgst != "")
 }
