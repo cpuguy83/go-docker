@@ -17,7 +17,7 @@ func TestExec(t *testing.T) {
 	_, err := c.Exec(ctx, WithExecCmd("true"))
 	assert.Check(t, errdefs.IsNotFound(err), err)
 
-	c, err = s.Create(ctx, WithCreateImage("busybox:latest"),
+	c, err = s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "trap 'exit 0' SIGTERM; while true; do sleep 0.1; done"),
 	)
 	defer func() {

@@ -28,15 +28,12 @@ type Spec struct {
 	NetworkConfig containerapi.NetworkingConfig
 }
 
-// Create creates a container.
-// You must specify a CreateOption which sets the image to use (e.g. WithCreateImage) otherwise the API will (should)
-// return an error.
-// All other options are truly optional.
-//
-// TODO: Should "image" be moved to a dedicated function argument?
-func (s *Service) Create(ctx context.Context, opts ...CreateOption) (*Container, error) {
+// Create creates a container using the provided image.
+func (s *Service) Create(ctx context.Context, img string, opts ...CreateOption) (*Container, error) {
 	c := CreateConfig{
-		Spec: Spec{},
+		Spec: Spec{
+			Config: containerapi.Config{Image: img},
+		},
 	}
 	for _, o := range opts {
 		o(&c)

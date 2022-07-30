@@ -16,7 +16,7 @@ func TestStart(t *testing.T) {
 	err := c.Start(ctx)
 	assert.Assert(t, errdefs.IsNotFound(err), err)
 
-	c, err = s.Create(ctx, WithCreateImage("busybox:latest"), WithCreateCmd("top"))
+	c, err = s.Create(ctx, "busybox:latest", WithCreateCmd("top"))
 	defer func() {
 		if c != nil {
 			assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))

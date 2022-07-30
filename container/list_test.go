@@ -12,7 +12,7 @@ func TestList(t *testing.T) {
 	ctx := context.Background()
 	s := newTestService(t)
 
-	c, err := s.Create(ctx, WithCreateImage("busybox:latest"),
+	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "trap 'exit 0' SIGTERM; while true; do sleep 0.1; done"),
 	)
 	assert.NilError(t, err)
@@ -44,7 +44,7 @@ func TestListLimit(t *testing.T) {
 	n := 4
 
 	for i := 0; i < n; i++ {
-		c, err := s.Create(ctx, WithCreateImage("busybox:latest"),
+		c, err := s.Create(ctx, "busybox:latest",
 			WithCreateCmd("/bin/sh", "-c", "trap 'exit 0' SIGTERM; while true; do sleep 0.1; done"),
 		)
 		assert.NilError(t, err)
@@ -73,7 +73,7 @@ func TestListSize(t *testing.T) {
 	n := 1
 
 	for i := 0; i < n; i++ {
-		c, err := s.Create(ctx, WithCreateImage("busybox:latest"),
+		c, err := s.Create(ctx, "busybox:latest",
 			WithCreateCmd("/bin/sh", "-c", "trap 'exit 0' SIGTERM; while true; do sleep 0.1; done"),
 		)
 		assert.NilError(t, err)
@@ -103,7 +103,7 @@ func TestListFilter(t *testing.T) {
 
 	for i := 0; i < n; i++ {
 		c, err := s.Create(ctx,
-			WithCreateImage("busybox:latest"),
+			"busybox:latest",
 			WithCreateCmd("/bin/sh", "-c", "trap 'exit 0' SIGTERM; while true; do sleep 0.1; done"),
 			WithCreateName(fmt.Sprintf("foobar-%d", i)),
 		)

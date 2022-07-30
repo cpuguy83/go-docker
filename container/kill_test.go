@@ -17,7 +17,7 @@ func TestKill(t *testing.T) {
 	err := s.Kill(ctx, "notexist")
 	assert.Check(t, errdefs.IsNotFound(err), err)
 
-	c, err := s.Create(ctx, WithCreateName(strings.ToLower(t.Name())), WithCreateTTY, WithCreateImage("busybox:latest"), WithCreateCmd("/bin/sh", "-c", "trap 'exit 0' SIGTERM; while true; do usleep 100000; done"))
+	c, err := s.Create(ctx, "busybox:latest", WithCreateName(strings.ToLower(t.Name())), WithCreateTTY, WithCreateCmd("/bin/sh", "-c", "trap 'exit 0' SIGTERM; while true; do usleep 100000; done"))
 	defer func() {
 		assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))
 	}()

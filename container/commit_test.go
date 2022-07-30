@@ -13,7 +13,7 @@ func TestCommit(t *testing.T) {
 	ctx := context.Background()
 	s := newTestService(t)
 
-	c, err := s.Create(ctx, WithCreateImage("busybox:latest"))
+	c, err := s.Create(ctx, "busybox:latest")
 	assert.NilError(t, err)
 
 	// TODO: check image reference?

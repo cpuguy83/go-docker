@@ -15,7 +15,7 @@ func TestContainerAttachTTY(t *testing.T) {
 	s := newTestService(t)
 
 	c, err := s.Create(ctx,
-		WithCreateImage("busybox:latest"),
+		"busybox:latest",
 		WithCreateTTY,
 		WithCreateAttachStdin,
 		WithCreateAttachStdout,
@@ -55,7 +55,7 @@ func TestContainerAttachNoTTY(t *testing.T) {
 	s := newTestService(t)
 
 	c, err := s.Create(ctx,
-		WithCreateImage("busybox:latest"),
+		"busybox:latest",
 		WithCreateAttachStdout,
 		WithCreateAttachStderr,
 		WithCreateCmd("/bin/sh", "-c", "echo hello; >&2 echo world"),

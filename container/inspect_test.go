@@ -19,7 +19,7 @@ func TestInspect(t *testing.T) {
 	assert.Check(t, errdefs.IsNotFound(err), err)
 
 	name := strings.ToLower(t.Name())
-	c, err := s.Create(ctx, WithCreateImage("busybox:latest"), WithCreateName(name))
+	c, err := s.Create(ctx, "busybox:latest", WithCreateName(name))
 	assert.NilError(t, err)
 	defer func() {
 		assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))

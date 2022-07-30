@@ -3,20 +3,21 @@ package container
 import (
 	"bufio"
 	"context"
-	"gotest.tools/v3/assert"
 	"io"
 	"io/ioutil"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestStdoutLogs(t *testing.T) {
 	ctx := context.Background()
 	s := newTestService(t)
 
-	c, err := s.Create(ctx, WithCreateImage("busybox:latest"),
+	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "echo 'hello there'"),
 	)
 	assert.NilError(t, err)
@@ -43,7 +44,7 @@ func TestStderrLogs(t *testing.T) {
 	ctx := context.Background()
 	s := newTestService(t)
 
-	c, err := s.Create(ctx, WithCreateImage("busybox:latest"),
+	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", ">&2 echo 'bad things'"),
 	)
 	assert.NilError(t, err)
@@ -70,7 +71,7 @@ func TestStdoutStderrLogs(t *testing.T) {
 	ctx := context.Background()
 	s := newTestService(t)
 
-	c, err := s.Create(ctx, WithCreateImage("busybox:latest"),
+	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", ">&2 echo 'bad things'"),
 	)
 	assert.NilError(t, err)
@@ -97,7 +98,7 @@ func TestLogsSince(t *testing.T) {
 	ctx := context.Background()
 	s := newTestService(t)
 
-	c, err := s.Create(ctx, WithCreateImage("busybox:latest"),
+	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "echo 'hello there'; sleep 2; echo 'why hello'"),
 	)
 	assert.NilError(t, err)
@@ -129,7 +130,7 @@ func TestLogsUntil(t *testing.T) {
 	ctx := context.Background()
 	s := newTestService(t)
 
-	c, err := s.Create(ctx, WithCreateImage("busybox:latest"),
+	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "echo 'hello there'; sleep 2; echo 'why hello'"),
 	)
 	assert.NilError(t, err)
@@ -162,7 +163,7 @@ func TestLogsTimestamps(t *testing.T) {
 	ctx := context.Background()
 	s := newTestService(t)
 
-	c, err := s.Create(ctx, WithCreateImage("busybox:latest"),
+	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "echo 'hello there'"),
 	)
 	assert.NilError(t, err)
