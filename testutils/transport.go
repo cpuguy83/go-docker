@@ -6,8 +6,14 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 
 	"github.com/cpuguy83/go-docker/transport"
+)
+
+var (
+	// regex to match any non-empty identity token
+	jsonIdentityTokenRegex = regexp.MustCompile(`"((?i)identitytoken|password|auth)":\ ?".*"`)
 )
 
 func NewTransport(t LogT, client transport.Doer) *Transport {
@@ -68,7 +74,7 @@ func (t *Transport) logRequest(req *http.Request) error {
 
 	req.Body = wrapReader(buf, req.Body.Close)
 
-	t.t.Log(buf.String())
+	t.t.Log(filterBuf(buf).String())
 	return nil
 }
 
@@ -95,7 +101,11 @@ func (t *Transport) logResponse(resp *http.Response, err error) (*http.Response,
 
 	resp.Body = wrapReader(buf, resp.Body.Close)
 
-	t.t.Log(buf.String())
+	t.t.Log(filterBuf(buf).String())
 
 	return resp, err
+}
+
+func filterBuf(buf *bytes.Buffer) *bytes.Buffer {
+	return bytes.NewBuffer(jsonIdentityTokenRegex.ReplaceAll(buf.Bytes(), []byte(`"${1}": "<REDACTED>"`)))
 }
