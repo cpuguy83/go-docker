@@ -62,7 +62,7 @@ func (c *Container) Exec(ctx context.Context, opts ...ExecOption) (*ExecProcess,
 	}
 
 	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
-		return c.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/"+c.id+"/exec"), withJSONBody(cfg))
+		return c.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/"+c.id+"/exec"), httputil.WithJSONBody(cfg))
 	})
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func (e *ExecProcess) Start(ctx context.Context, opts ...ExecStartOption) error 
 	}
 
 	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
-		return e.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/exec/"+e.id+"/start"), withJSONBody(cfg))
+		return e.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/exec/"+e.id+"/start"), httputil.WithJSONBody(cfg))
 	})
 	if err != nil {
 		return err

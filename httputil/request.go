@@ -1,7 +1,10 @@
 package httputil
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/cpuguy83/go-docker/errdefs"
@@ -22,4 +25,20 @@ func DoRequest(ctx context.Context, do func(context.Context) (*http.Response, er
 
 	LimitResponse(ctx, resp)
 	return resp, CheckResponseError(resp)
+}
+
+// WithJSONBody is a request option that sets the request body to the JSON encoded version of the passed in value.
+func WithJSONBody(v interface{}) func(req *http.Request) error {
+	return func(req *http.Request) error {
+		data, err := json.Marshal(v)
+		if err != nil {
+			return errdefs.Wrap(err, "error marshaling json body")
+		}
+		req.Body = ioutil.NopCloser(bytes.NewReader(data))
+		if req.Header == nil {
+			req.Header = http.Header{}
+		}
+		req.Header.Set("Content-Type", "application/json")
+		return nil
+	}
 }

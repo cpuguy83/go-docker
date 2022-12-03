@@ -1,7 +1,6 @@
 package container
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -54,7 +53,7 @@ func (s *Service) Create(ctx context.Context, img string, opts ...CreateOption) 
 	}
 
 	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
-		return s.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/create"), withJSONBody(c.Spec), withName)
+		return s.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/create"), httputil.WithJSONBody(c.Spec), withName)
 	})
 	if err != nil {
 		return nil, err
@@ -79,19 +78,4 @@ func (s *Service) Create(ctx context.Context, img string, opts ...CreateOption) 
 
 type containerCreateResponse struct {
 	ID string `json:"Id"`
-}
-
-func withJSONBody(v interface{}) func(req *http.Request) error {
-	return func(req *http.Request) error {
-		data, err := json.Marshal(v)
-		if err != nil {
-			return errdefs.Wrap(err, "error marshaling json body")
-		}
-		req.Body = ioutil.NopCloser(bytes.NewReader(data))
-		if req.Header == nil {
-			req.Header = http.Header{}
-		}
-		req.Header.Set("Content-Type", "application/json")
-		return nil
-	}
 }
