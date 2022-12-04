@@ -27,7 +27,9 @@ type LoadOption func(config *LoadConfig) error
 func (s *Service) Load(ctx context.Context, tar io.ReadCloser, opts ...LoadOption) error {
 	cfg := LoadConfig{}
 	for _, o := range opts {
-		o(&cfg)
+		if err := o(&cfg); err != nil {
+			return err
+		}
 	}
 
 	withListConfig := func(req *http.Request) error {
