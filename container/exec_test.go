@@ -20,6 +20,7 @@ func TestExec(t *testing.T) {
 	c, err = s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "trap 'exit 0' SIGTERM; while true; do sleep 0.1; done"),
 	)
+	assert.NilError(t, err)
 	defer func() {
 		assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))
 	}()

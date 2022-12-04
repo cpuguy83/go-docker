@@ -197,6 +197,8 @@ func TestLogsTimestamps(t *testing.T) {
 	assert.NilError(t, err)
 
 	parsedTime, err := time.Parse("2006-01-02T15:04:05.999999999Z", ts[:len(ts)-1])
+	assert.NilError(t, err)
+
 	now := time.Now().UTC()
 	t.Logf("%s", now)
 	assert.Assert(t, parsedTime.Year() == now.Year(), "expected parsed year to be %d but received %d", now.Year(), parsedTime.Year())

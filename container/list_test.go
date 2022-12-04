@@ -25,6 +25,8 @@ func TestList(t *testing.T) {
 	assert.NilError(t, err)
 
 	containers, err := s.List(ctx)
+	assert.NilError(t, err)
+
 	found := false
 	for _, container := range containers {
 		fmt.Printf("\n\nid: %s\n", c.ID())
