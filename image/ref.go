@@ -2,6 +2,7 @@ package image
 
 import (
 	"net/url"
+	"path"
 	"strings"
 
 	"github.com/cpuguy83/go-docker/errdefs"
@@ -22,6 +23,20 @@ type Remote struct {
 	Locator string
 	// Tag is the tag or digest of the image.
 	Tag string
+}
+
+func (r Remote) String() string {
+	s := path.Join(r.Host, r.Locator)
+	if r.Tag != "" {
+		if strings.Contains(r.Tag, ":") {
+			// Should be a digest
+			s = s + "@" + r.Tag
+		} else if r.Tag != "" {
+			s += ":" + r.Tag
+		}
+	}
+
+	return s
 }
 
 // ParseRef takes an image ref and parses it into a `Remote` struct.

@@ -59,3 +59,26 @@ func TestParseRef(t *testing.T) {
 		})
 	}
 }
+
+func TestRefString(t *testing.T) {
+	type testCase struct {
+		ref      Remote
+		expected string
+	}
+
+	testCases := []testCase{
+		{ref: Remote{Host: "docker.io", Locator: "foo", Tag: "latest"}, expected: "docker.io/foo:latest"},
+		{ref: Remote{Host: "docker.io", Locator: "foo", Tag: "sha256:aaaaa"}, expected: "docker.io/foo@sha256:aaaaa"},
+		{ref: Remote{Host: "docker.io", Locator: "foo/bar", Tag: "latest"}, expected: "docker.io/foo/bar:latest"},
+		{ref: Remote{Host: "docker.io", Locator: "foo/bar", Tag: "sha256:aaaaa"}, expected: "docker.io/foo/bar@sha256:aaaaa"},
+		{ref: Remote{Locator: "foo", Tag: "latest"}, expected: "foo:latest"},
+		{ref: Remote{Locator: "foo"}, expected: "foo"},
+		{ref: Remote{Locator: "foo", Tag: "sha256:aaaaaa"}, expected: "foo@sha256:aaaaaa"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.expected, func(t *testing.T) {
+			assert.Check(t, cmp.Equal(tc.expected, tc.ref.String()))
+		})
+	}
+}
