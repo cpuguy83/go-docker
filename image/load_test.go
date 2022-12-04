@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"os/exec"
+	"strings"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -26,8 +27,19 @@ func TestLoad(t *testing.T) {
 	bundle, err := cmd.CombinedOutput()
 	assert.NilError(t, err, "expected exporting hello-world to succeed")
 
-	err = s.Load(ctx, io.NopCloser(bytes.NewReader(bundle)), func(config *LoadConfig) {
-		config.Quiet = true
+	err = s.Load(ctx, io.NopCloser(bytes.NewReader(bundle)))
+	assert.NilError(t, err, "expecting load to succeed")
+
+	buf := bytes.NewBuffer(nil)
+	consume := func(ctx context.Context, rdr io.Reader) error {
+		_, err := io.Copy(buf, rdr)
+		return err
+	}
+
+	err = s.Load(ctx, io.NopCloser(bytes.NewReader(bundle)), func(cfg *LoadConfig) error {
+		cfg.ConsumeProgress = consume
+		return nil
 	})
 	assert.NilError(t, err, "expecting load to succeed")
+	assert.Equal(t, `{"stream":"Loaded image: hello-world:latest\n"}`, strings.TrimSpace(buf.String()))
 }
