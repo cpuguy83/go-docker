@@ -55,8 +55,8 @@ type PullProgressMessage struct {
 // PullProgressMessageHandler is used with `WithPullProgressMessage` to handle progress messages.
 type PullProgressMessageHandler func(context.Context, PullProgressMessage) error
 
-// PullProgressDigest wraps the past in handler with a progress callback suitable for `WithPullProgressMessage`
-// The past in callback is called when the digest of a pulled image is received.
+// PullProgressDigest wraps the passed in handler with a progress callback suitable for `WithPullProgressMessage`
+// The passed in callback is called when the digest of a pulled image is received.
 func PullProgressDigest(h func(ctx context.Context, digest string) error) PullProgressMessageHandler {
 	return func(ctx context.Context, msg PullProgressMessage) error {
 		_, right, ok := strings.Cut(msg.Status, "Digest:")
