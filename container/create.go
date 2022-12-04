@@ -16,8 +16,9 @@ import (
 
 // CreateConfig holds the options for creating a container
 type CreateConfig struct {
-	Spec Spec
-	Name string
+	Spec     Spec
+	Name     string
+	Platform string
 }
 
 // Spec holds all the configuration for the container create API request
@@ -25,6 +26,12 @@ type Spec struct {
 	containerapi.Config
 	HostConfig    containerapi.HostConfig
 	NetworkConfig containerapi.NetworkingConfig
+}
+
+func WithCreatePlatform(platform string) CreateOption {
+	return func(cfg *CreateConfig) {
+		cfg.Platform = platform
+	}
 }
 
 // Create creates a container using the provided image.
@@ -52,8 +59,15 @@ func (s *Service) Create(ctx context.Context, img string, opts ...CreateOption) 
 		}
 	}
 
+	withPlatform := func(req *http.Request) error {
+		q := req.URL.Query()
+		q.Set("platform", c.Platform)
+		req.URL.RawQuery = q.Encode()
+		return nil
+	}
+
 	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
-		return s.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/create"), httputil.WithJSONBody(c.Spec), withName)
+		return s.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/create"), httputil.WithJSONBody(c.Spec), withName, withPlatform)
 	})
 	if err != nil {
 		return nil, err
