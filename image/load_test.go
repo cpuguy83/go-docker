@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"os/exec"
 	"strings"
 	"testing"
 
@@ -23,12 +22,8 @@ func TestLoad(t *testing.T) {
 	})
 	assert.NilError(t, err, "expected pulling hello-world to succeed")
 
-	cmd := exec.Command("docker", "image", "save", "hello-world:latest")
-	bundle, err := cmd.CombinedOutput()
-	assert.NilError(t, err, "expected exporting hello-world to succeed")
-
-	err = s.Load(ctx, io.NopCloser(bytes.NewReader(bundle)))
-	assert.NilError(t, err, "expecting load to succeed")
+	rdr, err := s.Export(ctx, WithExportRefs("hello-world:latest"))
+	assert.NilError(t, err)
 
 	buf := bytes.NewBuffer(nil)
 	consume := func(ctx context.Context, rdr io.Reader) error {
@@ -36,10 +31,11 @@ func TestLoad(t *testing.T) {
 		return err
 	}
 
-	err = s.Load(ctx, io.NopCloser(bytes.NewReader(bundle)), func(cfg *LoadConfig) error {
+	err = s.Load(ctx, rdr, func(cfg *LoadConfig) error {
 		cfg.ConsumeProgress = consume
 		return nil
 	})
+	defer s.Remove(ctx, "hello-world:latest")
 	assert.NilError(t, err, "expecting load to succeed")
 	assert.Equal(t, `{"stream":"Loaded image: hello-world:latest\n"}`, strings.TrimSpace(buf.String()))
 }

@@ -17,6 +17,9 @@ func TestList(t *testing.T) {
 		Host:    "docker.io",
 		Tag:     "latest",
 	})
+	// This is used by some other tests right now, so don't remove it
+	// defer s.Remove(ctx, "busybox:latest")
+
 	assert.NilError(t, err, "expected pulling busybox to succeed")
 	err = s.Pull(ctx, Remote{
 		Locator: "hello-world",
@@ -24,6 +27,7 @@ func TestList(t *testing.T) {
 		Tag:     "latest",
 	})
 	assert.NilError(t, err, "expected pulling hello-world to succeed")
+	defer s.Remove(ctx, "hello-world:latest")
 
 	images, err := s.List(ctx, func(config *ListConfig) {
 		config.Filter.Reference = append(config.Filter.Reference, "busybox:latest", "hello-world:latest")

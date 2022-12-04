@@ -24,4 +24,8 @@ func TestPull(t *testing.T) {
 	err := svc.Pull(ctx, Remote{Locator: "busybox", Tag: "latest"}, WithPullProgressMessage(PullProgressDigest(digestFn)))
 	assert.NilError(t, err)
 	assert.Assert(t, dgst != "")
+
+	// This is used by some other tests right now, so don't remove it
+	/// _, err = svc.Remove(ctx, "busybox:latest")
+	assert.NilError(t, err)
 }
