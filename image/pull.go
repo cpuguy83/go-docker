@@ -30,6 +30,13 @@ type PullConfig struct {
 	ConsumeProgress StreamConsumer
 }
 
+func WithPullPlatform(platform string) PullOption {
+	return func(cfg *PullConfig) error {
+		cfg.Platform = platform
+		return nil
+	}
+}
+
 // StreamConsumer is a function that consumes a stream of data, typically a stream of messages.
 type StreamConsumer func(context.Context, io.Reader) error
 
