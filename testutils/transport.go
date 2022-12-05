@@ -95,13 +95,12 @@ func (t *Transport) logResponse(resp *http.Response, err error) (*http.Response,
 	}
 
 	buf := bytes.NewBuffer(nil)
-	if _, err := ioutil.ReadAll(io.TeeReader(resp.Body, buf)); err != nil {
-		return resp, err
-	}
-
-	resp.Body = wrapReader(buf, resp.Body.Close)
-
-	t.t.Log(filterBuf(buf).String())
+	b := resp.Body
+	rdr := io.TeeReader(b, buf)
+	resp.Body = wrapReader(rdr, func() error {
+		t.t.Log(filterBuf(buf).String())
+		return b.Close()
+	})
 
 	return resp, err
 }
