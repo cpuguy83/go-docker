@@ -25,7 +25,11 @@ func APIVersion(ctx context.Context) string {
 
 // Join adds the API version stored in the context to the provided uri
 func Join(ctx context.Context, uri string) string {
-	return path.Join("/", APIVersion(ctx), uri)
+	v := APIVersion(ctx)
+	if len(v) > 0 && v[0] != 'v' {
+		v = "v" + v
+	}
+	return path.Join("/", v, uri)
 }
 
 // FromEnv sets the API version to use from the DOCKER_API_VERSION environment variable
@@ -38,7 +42,7 @@ func FromEnv(ctx context.Context) context.Context {
 // It returns a context with the best api version to use.
 func Negotiate(ctx context.Context, srv string) context.Context {
 	if srv == "" {
-		srv = "1.24"
+		srv = "v1.12"
 	}
 
 	v := APIVersion(ctx)

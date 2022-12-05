@@ -11,6 +11,8 @@ func compare(v1, v2 string) int {
 	if v1 == v2 {
 		return 0
 	}
+	v1 = strings.TrimPrefix(v1, "v")
+	v2 = strings.TrimPrefix(v2, "v")
 	var (
 		currTab  = strings.Split(v1, ".")
 		otherTab = strings.Split(v2, ".")
@@ -41,5 +43,8 @@ func compare(v1, v2 string) int {
 
 // LessThan checks if a version is less than another
 func LessThan(v, other string) bool {
+	if v == "" {
+		return false
+	}
 	return compare(v, other) == -1
 }
