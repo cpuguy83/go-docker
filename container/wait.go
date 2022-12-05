@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/cpuguy83/go-docker/errdefs"
 	"github.com/cpuguy83/go-docker/httputil"
@@ -48,18 +50,23 @@ type WaitOption func(*WaitConfig)
 // ExitStatus is used to report information about a container exit
 // It is used by container.Wait.
 type ExitStatus interface {
-	ExitCode() int
+	ExitCode() (int, error)
 }
 
 type waitStatus struct {
+	mu         sync.Mutex
+	ready      bool
 	StatusCode int
+	err        error
 	Err        *struct {
 		Message string
 	} `json:"Error"`
 }
 
-func (s *waitStatus) ExitCode() int {
-	return s.StatusCode
+func (s *waitStatus) ExitCode() (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.StatusCode, s.err
 }
 
 func WithWaitCondition(cond WaitCondition) WaitOption {
@@ -75,8 +82,17 @@ func (c *Container) Wait(ctx context.Context, opts ...WaitOption) (ExitStatus, e
 		o(&cfg)
 	}
 
+	if version.LessThan(version.APIVersion(ctx), "1.30") {
+		// Before 1.30:
+		//   - wait condition is not supported
+		//   - The API blocks until wait is completed
+		//
+		// On 2nd point above, this would require running the request in a goroutine.
+		// Not difficult but for now just return an error.
+		return nil, errdefs.NotImplemented("container wait requires API version 1.30 or higher")
+	}
 	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
-		return c.tr.Do(ctx, http.MethodPost, version.Join(ctx, version.Join(ctx, "/containers/"+c.id+"/wait")), func(req *http.Request) error {
+		return c.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/"+c.id+"/wait"), func(req *http.Request) error {
 			q := req.URL.Query()
 			q.Add("condition", string(cfg.Condition))
 			req.URL.RawQuery = q.Encode()
@@ -86,15 +102,24 @@ func (c *Container) Wait(ctx context.Context, opts ...WaitOption) (ExitStatus, e
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
-	var ws waitStatus
-	if err := json.NewDecoder(resp.Body).Decode(&ws); err != nil {
-		return nil, errdefs.Wrap(err, "could not decode resp")
-	}
+	ws := &waitStatus{}
+	ws.mu.Lock()
 
-	if ws.Err != nil && ws.Err.Message != "" {
-		return &ws, errors.New(ws.Err.Message)
-	}
-	return &ws, nil
+	go func() {
+		defer ws.mu.Unlock()
+		defer resp.Body.Close()
+
+		if err := json.NewDecoder(resp.Body).Decode(&ws); err != nil {
+			ws.err = fmt.Errorf("could not decode response: %w", err)
+			ws.StatusCode = -1
+			return
+		}
+
+		if ws.Err != nil && ws.Err.Message != "" {
+			ws.err = errors.New(ws.Err.Message)
+		}
+	}()
+
+	return ws, nil
 }

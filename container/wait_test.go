@@ -6,13 +6,14 @@ import (
 	"time"
 
 	"github.com/cpuguy83/go-docker/testutils"
+	"github.com/cpuguy83/go-docker/version"
 
 	"github.com/cpuguy83/go-docker/errdefs"
 	"gotest.tools/v3/assert"
 )
 
 func TestWait(t *testing.T) {
-	ctx := context.Background()
+	ctx := version.WithAPIVersion(context.Background(), "1.42")
 	s := newTestService(t)
 
 	c := s.NewContainer(ctx, "notexist")
@@ -41,17 +42,22 @@ func TestWait(t *testing.T) {
 
 	es, err := c.Wait(ctx, WithWaitCondition(WaitConditionNotRunning))
 	assert.NilError(t, err)
-	assert.Equal(t, es.ExitCode(), 0)
+	code, err := es.ExitCode()
+	assert.NilError(t, err)
+	assert.Equal(t, code, 0)
 
 	ch := make(chan func(t *testing.T), 1)
+
+	es, err = c.Wait(ctx, WithWaitCondition(WaitConditionNextExit))
+	assert.NilError(t, err)
+
 	go func() {
-		es, err := c.Wait(ctx, WithWaitCondition(WaitConditionNextExit))
+		code, err := es.ExitCode()
 		ch <- func(t *testing.T) {
 			assert.NilError(t, err)
-
 			inspect, err := c.Inspect(ctx)
 			assert.NilError(t, err)
-			assert.Equal(t, es.ExitCode(), inspect.State.ExitCode)
+			assert.Equal(t, code, inspect.State.ExitCode)
 		}
 	}()
 
