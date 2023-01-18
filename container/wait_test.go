@@ -13,7 +13,7 @@ import (
 )
 
 func TestWait(t *testing.T) {
-	ctx := version.WithAPIVersion(context.Background(), "1.42")
+	ctx := version.WithAPIVersion(context.Background(), "1.41")
 	s := newTestService(t)
 
 	c := s.NewContainer(ctx, "notexist")
