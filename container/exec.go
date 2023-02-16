@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/cpuguy83/go-docker/container/streamutil"
 	"github.com/cpuguy83/go-docker/errdefs"
 	"github.com/cpuguy83/go-docker/httputil"
 	"github.com/cpuguy83/go-docker/transport"
@@ -22,10 +23,14 @@ const DefaultExecDecodeLimitBytes = 16 * 1024
 type ExecProcess struct {
 	id string
 	tr transport.Doer
+
+	stdin  io.ReadCloser
+	stdout io.WriteCloser
+	stderr io.WriteCloser
 }
 
 // ExecConfig holds all the options for creating a new process in a container
-type ExecConfig struct {
+type execConfig struct {
 	User         string   // User that will run the command
 	Privileged   bool     // Is the container in privileged mode
 	Tty          bool     // Attach standard streams to a tty.
@@ -37,6 +42,20 @@ type ExecConfig struct {
 	Env          []string // Environment variables
 	WorkingDir   string   // Working directory
 	Cmd          []string // Execution commands and args
+}
+
+type ExecConfig struct {
+	Cmd        []string
+	User       string
+	Privileged bool
+	Tty        bool
+	Env        []string
+	WorkingDir string
+	DetachKeys string
+
+	Stdin  io.ReadCloser
+	Stdout io.WriteCloser
+	Stderr io.WriteCloser
 }
 
 // ExecOption is used as functional arguments to configure an ExecConfig
@@ -55,14 +74,36 @@ type execCreateResponse struct {
 
 // Exec creates a new process in the container
 // The process is not actually started until `Start` is called
+//
+// Note: the exec API sucks.
+// We must know ahead of time that the process will be attached or detached.
+// Then it can only be attached when calling the start API.
+// So this diverges significantly from the container API.
 func (c *Container) Exec(ctx context.Context, opts ...ExecOption) (*ExecProcess, error) {
 	var cfg ExecConfig
 	for _, o := range opts {
 		o(&cfg)
 	}
 
+	if len(cfg.Cmd) == 0 {
+		return nil, errdefs.Invalid("no command specified")
+	}
+
+	cfgApi := execConfig{
+		AttachStdin:  cfg.Stdin != nil,
+		AttachStdout: cfg.Stdout != nil,
+		AttachStderr: cfg.Stderr != nil,
+		Cmd:          cfg.Cmd,
+		Detach:       cfg.Stdin == nil && cfg.Stdout == nil && cfg.Stderr == nil,
+		Env:          cfg.Env,
+		Privileged:   cfg.Privileged,
+		Tty:          cfg.Tty,
+		User:         cfg.User,
+		WorkingDir:   cfg.WorkingDir,
+	}
+
 	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
-		return c.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/"+c.id+"/exec"), httputil.WithJSONBody(cfg))
+		return c.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/containers/"+c.id+"/exec"), httputil.WithJSONBody(cfgApi))
 	})
 	if err != nil {
 		return nil, err
@@ -79,7 +120,7 @@ func (c *Container) Exec(ctx context.Context, opts ...ExecOption) (*ExecProcess,
 		return nil, errdefs.Wrap(err, "error decoding exec create response body")
 	}
 
-	return &ExecProcess{id: id.ID, tr: c.tr}, nil
+	return &ExecProcess{id: id.ID, tr: c.tr, stdin: cfg.Stdin, stdout: cfg.Stdout, stderr: cfg.Stderr}, nil
 }
 
 // ExecStartOption is used as functional arguments to configure an ExecStartConfig
@@ -87,30 +128,70 @@ type ExecStartOption func(config *ExecStartConfig)
 
 // ExecStartConfig holds all the options for starting a new process in a container
 type ExecStartConfig struct {
+}
+
+type apiExecStartConfig struct {
 	Detach bool
 }
 
+type closeReader interface {
+	CloseRead() error
+}
+
+type closeWriter interface {
+	CloseWrite() error
+}
+
+func (e *ExecProcess) shouldAttach() bool {
+	return e.stdin != nil || e.stdout != nil || e.stderr != nil
+}
+
 // Start starts the exec process
-//
-// TODO: The API for exec is kind of weird... start is used both for attach and start. If attach is used it must hijack
-// For now I would like to only support start and look at adding an API to the Docker API for a more generic attach.
 func (e *ExecProcess) Start(ctx context.Context, opts ...ExecStartOption) error {
 	var cfg ExecStartConfig
-	// detach otherwise the API will basically be async.
-	// For instance, if you call start, it returns successful, then inspect, you can end up in a race where pid can be
-	// 0 still.
-	cfg.Detach = true
 	for _, o := range opts {
 		o(&cfg)
 	}
 
-	resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
-		return e.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/exec/"+e.id+"/start"), httputil.WithJSONBody(cfg))
-	})
+	if !e.shouldAttach() {
+		aCfg := apiExecStartConfig{Detach: true}
+		resp, err := httputil.DoRequest(ctx, func(ctx context.Context) (*http.Response, error) {
+			return e.tr.Do(ctx, http.MethodPost, version.Join(ctx, "/exec/"+e.id+"/start"), httputil.WithJSONBody(aCfg))
+		})
+		if err != nil {
+			return err
+		}
+		resp.Body.Close()
+		return nil
+	}
+
+	rwc, err := e.tr.DoRaw(ctx, http.MethodPost, version.Join(ctx, "/exec/"+e.id+"/start"), httputil.WithJSONBody(apiExecStartConfig{}))
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+
+	go func() {
+		streamutil.StdCopy(e.stdout, e.stderr, rwc)
+		if cr, ok := rwc.(closeReader); ok {
+			cr.CloseRead()
+		} else {
+			rwc.Close()
+		}
+		e.stdout.Close()
+		e.stderr.Close()
+	}()
+
+	if e.stdin != nil {
+		go func() {
+			io.Copy(rwc, e.stdin)
+			if cw, ok := rwc.(closeWriter); ok {
+				cw.CloseWrite()
+			} else {
+				rwc.Close()
+			}
+			e.stdin.Close()
+		}()
+	}
 	return nil
 }
 

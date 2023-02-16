@@ -1,7 +1,11 @@
 package container
 
 import (
+	"bufio"
 	"context"
+	"io"
+	"io/ioutil"
+	"strings"
 	"testing"
 
 	"github.com/cpuguy83/go-docker/errdefs"
@@ -58,4 +62,23 @@ func TestExec(t *testing.T) {
 	assert.Check(t, !inspect.Running)
 	assert.Assert(t, inspect.ExitCode != nil)
 	assert.Check(t, *inspect.ExitCode != 0)
+
+	assert.NilError(t, c.Start(ctx))
+
+	r, w := io.Pipe()
+	defer r.Close()
+
+	ep, err = c.Exec(ctx, WithExecCmd("cat"), func(cfg *ExecConfig) {
+		cfg.Stdin = ioutil.NopCloser(strings.NewReader("hello\n"))
+		cfg.Stdout = w
+		cfg.Stderr = w
+	})
+	assert.NilError(t, err)
+
+	err = ep.Start(ctx)
+	assert.NilError(t, err)
+
+	line, err := bufio.NewReader(r).ReadString('\n')
+	assert.NilError(t, err)
+	assert.Equal(t, line, "hello\n")
 }
