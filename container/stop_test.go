@@ -9,8 +9,7 @@ import (
 )
 
 func TestStop(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c := s.NewContainer(ctx, "notexist")
 	err := c.Stop(ctx)

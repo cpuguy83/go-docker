@@ -12,8 +12,7 @@ import (
 )
 
 func TestInspect(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	_, err := s.Inspect(ctx, "notExist")
 	assert.Check(t, errdefs.IsNotFound(err), err)

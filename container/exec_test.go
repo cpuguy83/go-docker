@@ -14,8 +14,7 @@ import (
 )
 
 func TestExec(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c := s.NewContainer(ctx, "notexist")
 	_, err := c.Exec(ctx, WithExecCmd("true"))

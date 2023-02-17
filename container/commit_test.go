@@ -10,8 +10,7 @@ import (
 func TestCommit(t *testing.T) {
 	t.Skip("image api not implemented, don't create stuff that we can't remove or even check")
 
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest")
 	assert.NilError(t, err)

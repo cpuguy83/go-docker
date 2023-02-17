@@ -9,8 +9,7 @@ import (
 )
 
 func TestRemove(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	err := s.Remove(ctx, "notexist")
 	assert.Check(t, errdefs.IsNotFound(err))

@@ -11,8 +11,7 @@ import (
 )
 
 func TestContainerAttachTTY(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx,
 		"busybox:latest",
@@ -51,8 +50,7 @@ func TestContainerAttachTTY(t *testing.T) {
 }
 
 func TestContainerAttachNoTTY(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx,
 		"busybox:latest",

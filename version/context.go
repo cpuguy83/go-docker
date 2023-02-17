@@ -38,16 +38,21 @@ func FromEnv(ctx context.Context) context.Context {
 	return WithAPIVersion(ctx, os.Getenv("DOCKER_API_VERSION"))
 }
 
+const (
+	maxAPIVersion = "v1.41"
+	minAPIVersion = "v1.12"
+)
+
 // Negotiate looks at the version currently in ctx and the verion of the server.
 // It returns a context with the best api version to use.
 func Negotiate(ctx context.Context, srv string) context.Context {
 	if srv == "" {
-		srv = "v1.12"
+		srv = minAPIVersion
 	}
 
 	v := APIVersion(ctx)
 	if v == "" {
-		v = srv
+		v = maxAPIVersion
 	}
 
 	if LessThan(srv, v) {

@@ -11,8 +11,7 @@ import (
 )
 
 func TestKill(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	err := s.Kill(ctx, "notexist")
 	assert.Check(t, errdefs.IsNotFound(err), err)

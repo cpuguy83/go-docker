@@ -14,8 +14,7 @@ import (
 )
 
 func TestStdoutLogs(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "echo 'hello there'"),
@@ -42,8 +41,7 @@ func TestStdoutLogs(t *testing.T) {
 }
 
 func TestStderrLogs(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", ">&2 echo 'bad things'"),
@@ -70,8 +68,7 @@ func TestStderrLogs(t *testing.T) {
 }
 
 func TestStdoutStderrLogs(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", ">&2 echo 'bad things'"),
@@ -98,8 +95,7 @@ func TestStdoutStderrLogs(t *testing.T) {
 }
 
 func TestLogsSince(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "echo 'hello there'; sleep 2; echo 'why hello'"),
@@ -131,8 +127,7 @@ func TestLogsSince(t *testing.T) {
 }
 
 func TestLogsUntil(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "echo 'hello there'; sleep 2; echo 'why hello'"),
@@ -165,8 +160,7 @@ func TestLogsUntil(t *testing.T) {
 }
 
 func TestLogsTimestamps(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "echo 'hello there'"),
@@ -207,8 +201,7 @@ func TestLogsTimestamps(t *testing.T) {
 }
 
 func TestLogsTTYMux(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "echo 'hello there'"),

@@ -10,8 +10,7 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "")
 	assert.Check(t, errdefs.IsInvalid(err), err)

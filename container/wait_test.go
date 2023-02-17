@@ -6,15 +6,13 @@ import (
 	"time"
 
 	"github.com/cpuguy83/go-docker/testutils"
-	"github.com/cpuguy83/go-docker/version"
 
 	"github.com/cpuguy83/go-docker/errdefs"
 	"gotest.tools/v3/assert"
 )
 
 func TestWait(t *testing.T) {
-	ctx := version.WithAPIVersion(context.Background(), "1.41")
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c := s.NewContainer(ctx, "notexist")
 	_, err := c.Wait(ctx)

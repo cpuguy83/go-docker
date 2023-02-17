@@ -9,8 +9,7 @@ import (
 )
 
 func TestList(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
 		WithCreateCmd("/bin/sh", "-c", "trap 'exit 0' SIGTERM; while true; do sleep 0.1; done"),
@@ -41,8 +40,7 @@ func TestList(t *testing.T) {
 }
 
 func TestListLimit(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 	n := 4
 
 	for i := 0; i < n; i++ {
@@ -70,8 +68,7 @@ func TestListLimit(t *testing.T) {
 }
 
 func TestListSize(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 	n := 1
 
 	for i := 0; i < n; i++ {
@@ -99,8 +96,7 @@ func TestListSize(t *testing.T) {
 }
 
 func TestListFilter(t *testing.T) {
-	ctx := context.Background()
-	s := newTestService(t)
+	s, ctx := newTestService(t, context.Background())
 	n := 2
 
 	for i := 0; i < n; i++ {
