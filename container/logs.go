@@ -60,10 +60,12 @@ func (c *Container) Logs(ctx context.Context, opts ...LogsReadOption) (io.ReadCl
 	// Starting with api version 1.42, docker should returnn a header with the content-type indicating if the stream is multiplexed.
 	// If the api version is lower then we'll need to inspect the container to determine if the stream is multiplexed.
 	mux := resp.Header.Get("Content-Type") == mediaTypeMultiplexed
-	if !mux && version.LessThan(version.APIVersion(ctx), "1.42") {
-		inspect, err := c.Inspect(ctx)
-		if err == nil {
-			mux = !inspect.Config.Tty
+	if !mux {
+		if version.APIVersion(ctx) == "" || version.LessThan(version.APIVersion(ctx), "1.42") {
+			inspect, err := c.Inspect(ctx)
+			if err == nil {
+				mux = !inspect.Config.Tty
+			}
 		}
 	}
 
