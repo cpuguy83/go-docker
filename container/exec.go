@@ -142,6 +142,26 @@ type closeWriter interface {
 	CloseWrite() error
 }
 
+func closeWrite(c io.WriteCloser) error {
+	if c == nil {
+		return nil
+	}
+	if cw, ok := c.(closeWriter); ok {
+		return cw.CloseWrite()
+	}
+	return c.Close()
+}
+
+func closeRead(c io.ReadCloser) error {
+	if c == nil {
+		return nil
+	}
+	if cr, ok := c.(closeReader); ok {
+		return cr.CloseRead()
+	}
+	return c.Close()
+}
+
 func (e *ExecProcess) shouldAttach() bool {
 	return e.stdin != nil || e.stdout != nil || e.stderr != nil
 }
@@ -172,24 +192,16 @@ func (e *ExecProcess) Start(ctx context.Context, opts ...ExecStartOption) error 
 
 	go func() {
 		streamutil.StdCopy(e.stdout, e.stderr, rwc)
-		if cr, ok := rwc.(closeReader); ok {
-			cr.CloseRead()
-		} else {
-			rwc.Close()
-		}
-		e.stdout.Close()
-		e.stderr.Close()
+		closeRead(rwc)
+		closeWrite(e.stdout)
+		closeWrite(e.stderr)
 	}()
 
 	if e.stdin != nil {
 		go func() {
 			io.Copy(rwc, e.stdin)
-			if cw, ok := rwc.(closeWriter); ok {
-				cw.CloseWrite()
-			} else {
-				rwc.Close()
-			}
-			e.stdin.Close()
+			closeWrite(rwc)
+			closeRead(e.stdin)
 		}()
 	}
 	return nil
