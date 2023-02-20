@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/cpuguy83/go-docker/container/streamutil"
 	"github.com/cpuguy83/go-docker/httputil"
 	"github.com/cpuguy83/go-docker/version"
 )
@@ -13,14 +14,20 @@ import (
 type LogsReadOption func(*LogReadConfig)
 
 type LogReadConfig struct {
-	ShowStdout bool   `json:"stdout"`
-	ShowStderr bool   `json:"stderr"`
-	Since      string `json:"since"`
-	Until      string `json:"until"`
-	Timestamps bool   `json:"timestamps"`
-	Follow     bool   `json:"follow"`
-	Tail       string `json:"tail"`
-	Details    bool   `json:"details,omitempty"`
+	Since      string         `json:"since"`
+	Until      string         `json:"until"`
+	Timestamps bool           `json:"timestamps"`
+	Follow     bool           `json:"follow"`
+	Tail       string         `json:"tail"`
+	Details    bool           `json:"details,omitempty"`
+	Stdout     io.WriteCloser `json:"-"`
+	Stderr     io.WriteCloser `json:"-"`
+}
+
+type logReadConfigAPI struct {
+	ShowStdout bool `json:"stdout"`
+	ShowStderr bool `json:"stderr"`
+	LogReadConfig
 }
 
 const (
@@ -30,21 +37,27 @@ const (
 // Logs returns the logs for a container.
 // The logs may be a multiplexed stream with both stdout and stderr, in which case you'll need to split the stream using github.com/cpuguy83/go-docker/container/streamutil.StdCopy
 // The bool value returned indicates whether the logs are multiplexed or not.
-func (c *Container) Logs(ctx context.Context, opts ...LogsReadOption) (io.ReadCloser, bool, error) {
+func (c *Container) Logs(ctx context.Context, opts ...LogsReadOption) error {
 	var cfg LogReadConfig
 	for _, o := range opts {
 		o(&cfg)
 	}
 
+	cfgAPI := logReadConfigAPI{
+		ShowStdout:    cfg.Stdout != nil,
+		ShowStderr:    cfg.Stderr != nil,
+		LogReadConfig: cfg,
+	}
+
 	withLogConfig := func(req *http.Request) error {
 		q := req.URL.Query()
-		q.Add("follow", strconv.FormatBool(cfg.Follow))
-		q.Add("stdout", strconv.FormatBool(cfg.ShowStdout))
-		q.Add("stderr", strconv.FormatBool(cfg.ShowStderr))
-		q.Add("since", cfg.Since)
-		q.Add("until", cfg.Until)
-		q.Add("timestamps", strconv.FormatBool(cfg.Timestamps))
-		q.Add("tail", cfg.Tail)
+		q.Add("follow", strconv.FormatBool(cfgAPI.Follow))
+		q.Add("stdout", strconv.FormatBool(cfgAPI.ShowStdout))
+		q.Add("stderr", strconv.FormatBool(cfgAPI.ShowStderr))
+		q.Add("since", cfgAPI.Since)
+		q.Add("until", cfgAPI.Until)
+		q.Add("timestamps", strconv.FormatBool(cfgAPI.Timestamps))
+		q.Add("tail", cfgAPI.Tail)
 
 		req.URL.RawQuery = q.Encode()
 		return nil
@@ -54,7 +67,7 @@ func (c *Container) Logs(ctx context.Context, opts ...LogsReadOption) (io.ReadCl
 	//  instead of with httputil.DoRequest
 	resp, err := c.tr.Do(ctx, http.MethodGet, version.Join(ctx, "/containers/"+c.id+"/logs"), withLogConfig)
 	if err != nil {
-		return nil, false, err
+		return err
 	}
 
 	// Starting with api version 1.42, docker should returnn a header with the content-type indicating if the stream is multiplexed.
@@ -71,5 +84,37 @@ func (c *Container) Logs(ctx context.Context, opts ...LogsReadOption) (io.ReadCl
 
 	body := resp.Body
 	httputil.LimitResponse(ctx, resp)
-	return body, mux, httputil.CheckResponseError(resp)
+	if err := httputil.CheckResponseError(resp); err != nil {
+		return err
+	}
+
+	if mux {
+		if cfg.Stdout != nil || cfg.Stderr != nil {
+			go func() {
+				streamutil.StdCopy(cfg.Stdout, cfg.Stderr, body)
+				closeWrite(cfg.Stdout)
+				closeWrite(cfg.Stderr)
+				body.Close()
+			}()
+		}
+		return nil
+	}
+
+	if cfg.Stdout != nil {
+		go func() {
+			io.Copy(cfg.Stdout, body)
+			closeWrite(cfg.Stdout)
+			body.Close()
+		}()
+	}
+
+	if cfg.Stderr != nil {
+		go func() {
+			io.Copy(cfg.Stderr, body)
+			closeWrite(cfg.Stderr)
+			body.Close()
+		}()
+	}
+
+	return nil
 }

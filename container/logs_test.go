@@ -4,14 +4,23 @@ import (
 	"bufio"
 	"context"
 	"io"
-	"io/ioutil"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 )
+
+func waitForContainerExit(ctx context.Context, t *testing.T, c *Container) {
+	t.Helper()
+
+	wait, err := c.Wait(ctx, WithWaitCondition(WaitConditionNotRunning))
+	assert.NilError(t, err)
+	_, err = wait.ExitCode()
+	assert.NilError(t, err)
+}
 
 func TestStdoutLogs(t *testing.T) {
 	s, ctx := newTestService(t, context.Background())
@@ -28,16 +37,19 @@ func TestStdoutLogs(t *testing.T) {
 	err = c.Start(ctx)
 	assert.NilError(t, err)
 
-	logs, mux, err := c.Logs(ctx, func(config *LogReadConfig) {
-		config.ShowStdout = true
+	waitForContainerExit(ctx, t, c)
+
+	r, w := io.Pipe()
+	err = c.Logs(ctx, func(config *LogReadConfig) {
+		config.Stdout = w
 	})
 	assert.NilError(t, err)
-	assert.Check(t, mux)
+	defer r.Close()
 
-	buf, err := ioutil.ReadAll(logs)
+	data, err := io.ReadAll(r)
 	assert.NilError(t, err)
 
-	assert.Assert(t, strings.Contains(string(buf), "hello there"), "expected container logs to contain 'hello there'")
+	assert.Assert(t, cmp.Contains(string(data), "hello there"), "expected container logs to contain 'hello there'")
 }
 
 func TestStderrLogs(t *testing.T) {
@@ -55,16 +67,19 @@ func TestStderrLogs(t *testing.T) {
 	err = c.Start(ctx)
 	assert.NilError(t, err)
 
-	logs, mux, err := c.Logs(ctx, func(config *LogReadConfig) {
-		config.ShowStderr = true
+	waitForContainerExit(ctx, t, c)
+
+	r, w := io.Pipe()
+	err = c.Logs(ctx, func(config *LogReadConfig) {
+		config.Stderr = w
 	})
-	assert.NilError(t, err)
-	assert.Check(t, mux)
-
-	buf, err := ioutil.ReadAll(logs)
+	defer r.Close()
 	assert.NilError(t, err)
 
-	assert.Assert(t, strings.Contains(string(buf), "bad things"), "expected container logs to contain 'bad things'")
+	data, err := io.ReadAll(r)
+	assert.NilError(t, err)
+
+	assert.Assert(t, cmp.Contains(string(data), "bad things"), "expected container logs to contain 'bad things'")
 }
 
 func TestStdoutStderrLogs(t *testing.T) {
@@ -82,16 +97,17 @@ func TestStdoutStderrLogs(t *testing.T) {
 	err = c.Start(ctx)
 	assert.NilError(t, err)
 
-	logs, mux, err := c.Logs(ctx, func(config *LogReadConfig) {
-		config.ShowStdout = true
+	r, w := io.Pipe()
+	err = c.Logs(ctx, func(config *LogReadConfig) {
+		config.Stdout = w
 	})
-	assert.NilError(t, err)
-	assert.Check(t, mux)
-
-	buf, err := ioutil.ReadAll(logs)
+	defer r.Close()
 	assert.NilError(t, err)
 
-	assert.Assert(t, !strings.Contains(string(buf), "bad things"), "expected container logs to not contain 'bad things'")
+	data, err := io.ReadAll(r)
+	assert.NilError(t, err)
+
+	assert.Equal(t, string(data), "")
 }
 
 func TestLogsSince(t *testing.T) {
@@ -102,6 +118,9 @@ func TestLogsSince(t *testing.T) {
 	)
 	assert.NilError(t, err)
 
+	wait, err := c.Wait(ctx, WithWaitCondition(WaitConditionNextExit))
+	assert.NilError(t, err)
+
 	defer func() {
 		assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))
 	}()
@@ -109,21 +128,28 @@ func TestLogsSince(t *testing.T) {
 	err = c.Start(ctx)
 	assert.NilError(t, err)
 
-	time.Sleep(2 * time.Second)
-	ts := time.Now().Unix()
+	inspect, err := c.Inspect(ctx)
+	assert.NilError(t, err)
+	started, err := time.Parse(time.RFC3339Nano, inspect.State.StartedAt)
+	assert.NilError(t, err)
+	ts := started.Add(2 * time.Second).Unix()
 
-	logs, mux, err := c.Logs(ctx, func(config *LogReadConfig) {
-		config.ShowStdout = true
+	_, err = wait.ExitCode()
+	assert.NilError(t, err)
+
+	r, w := io.Pipe()
+	defer r.Close()
+	err = c.Logs(ctx, func(config *LogReadConfig) {
+		config.Stdout = w
 		config.Since = strconv.FormatInt(ts, 10)
 	})
 	assert.NilError(t, err)
-	assert.Check(t, mux)
 
-	buf, err := ioutil.ReadAll(logs)
+	data, err := io.ReadAll(r)
 	assert.NilError(t, err)
 
-	assert.Assert(t, !strings.Contains(string(buf), "hello there"), "expected container logs to not contain 'hello there'")
-	assert.Assert(t, strings.Contains(string(buf), "why hello"), "expected container logs to contain 'why hello'")
+	assert.Assert(t, !strings.Contains(string(data), "hello there"), "expected container logs to not contain 'hello there'")
+	assert.Assert(t, strings.Contains(string(data), "why hello"), "expected container logs to contain 'why hello'")
 }
 
 func TestLogsUntil(t *testing.T) {
@@ -134,6 +160,9 @@ func TestLogsUntil(t *testing.T) {
 	)
 	assert.NilError(t, err)
 
+	wait, err := c.Wait(ctx, WithWaitCondition(WaitConditionNextExit))
+	assert.NilError(t, err)
+
 	defer func() {
 		assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))
 	}()
@@ -141,22 +170,27 @@ func TestLogsUntil(t *testing.T) {
 	err = c.Start(ctx)
 	assert.NilError(t, err)
 
-	time.Sleep(1 * time.Second)
-	ts := time.Now().Unix()
-	time.Sleep(1 * time.Second)
+	inspect, err := c.Inspect(ctx)
+	assert.NilError(t, err)
+	started, err := time.Parse(time.RFC3339Nano, inspect.State.StartedAt)
+	assert.NilError(t, err)
 
-	logs, mux, err := c.Logs(ctx, func(config *LogReadConfig) {
-		config.ShowStdout = true
-		config.Until = strconv.FormatInt(ts, 10)
+	_, err = wait.ExitCode()
+	assert.NilError(t, err)
+
+	r, w := io.Pipe()
+	defer r.Close()
+	err = c.Logs(ctx, func(config *LogReadConfig) {
+		config.Stdout = w
+		config.Until = strconv.FormatInt(started.Add(time.Second).Unix(), 10)
 	})
 	assert.NilError(t, err)
-	assert.Check(t, mux)
 
-	buf, err := ioutil.ReadAll(logs)
+	data, err := io.ReadAll(r)
 	assert.NilError(t, err)
 
-	assert.Assert(t, strings.Contains(string(buf), "hello there"), "expected container logs to contain 'hello there'")
-	assert.Assert(t, !strings.Contains(string(buf), "why hello"), "expected container logs to not contain 'why hello'")
+	assert.Assert(t, strings.Contains(string(data), "hello there"), "expected container logs to contain 'hello there'")
+	assert.Assert(t, !strings.Contains(string(data), "why hello"), "expected container logs to not contain 'why hello'")
 }
 
 func TestLogsTimestamps(t *testing.T) {
@@ -174,18 +208,17 @@ func TestLogsTimestamps(t *testing.T) {
 	err = c.Start(ctx)
 	assert.NilError(t, err)
 
-	logs, mux, err := c.Logs(ctx, func(config *LogReadConfig) {
-		config.ShowStdout = true
+	waitForContainerExit(ctx, t, c)
+
+	pr, pw := io.Pipe()
+	defer pr.Close()
+	err = c.Logs(ctx, func(config *LogReadConfig) {
+		config.Stdout = pw
 		config.Timestamps = true
 	})
 	assert.NilError(t, err)
-	assert.Check(t, mux)
 
-	r := bufio.NewReader(logs)
-
-	header := make([]byte, 8)
-	_, err = io.ReadFull(r, header)
-	assert.NilError(t, err)
+	r := bufio.NewReader(pr)
 
 	ts, err := r.ReadString(' ')
 	assert.NilError(t, err)
@@ -194,32 +227,7 @@ func TestLogsTimestamps(t *testing.T) {
 	assert.NilError(t, err)
 
 	now := time.Now().UTC()
-	t.Logf("%s", now)
 	assert.Assert(t, parsedTime.Year() == now.Year(), "expected parsed year to be %d but received %d", now.Year(), parsedTime.Year())
 	assert.Assert(t, parsedTime.Month() == now.Month(), "expected parsed month to be %s but received %s", now.Month(), parsedTime.Month())
 	assert.Assert(t, parsedTime.Day() == now.Day(), "expected parsed day to be %d but received %d", now.Day(), parsedTime.Day())
-}
-
-func TestLogsTTYMux(t *testing.T) {
-	s, ctx := newTestService(t, context.Background())
-
-	c, err := s.Create(ctx, "busybox:latest",
-		WithCreateCmd("/bin/sh", "-c", "echo 'hello there'"),
-		WithCreateTTY,
-	)
-	assert.NilError(t, err)
-
-	defer func() {
-		assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))
-	}()
-
-	err = c.Start(ctx)
-	assert.NilError(t, err)
-
-	logs, mux, err := c.Logs(ctx, func(config *LogReadConfig) {
-		config.ShowStdout = true
-	})
-	assert.NilError(t, err)
-	defer logs.Close()
-	assert.Check(t, !mux)
 }
