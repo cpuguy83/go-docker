@@ -19,6 +19,13 @@ func StdCopy(dstout, dsterr io.Writer, src io.Reader) (written int64, retErr err
 	rdr := NewStdReader(src)
 	buf := make([]byte, 32*2014)
 
+	if dstout == nil {
+		dstout = io.Discard
+	}
+	if dsterr == nil {
+		dsterr = io.Discard
+	}
+
 	for {
 		hdr, err := rdr.Next()
 		if err != nil {
