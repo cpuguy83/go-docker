@@ -39,7 +39,7 @@ type Doer interface {
 	// Do typically performs a normal http request/response
 	Do(ctx context.Context, method string, uri string, opts ...RequestOpt) (*http.Response, error)
 	// DoRaw performs the request but passes along the response as a bi-directional stream
-	DoRaw(ctx context.Context, method string, uri string, opts ...RequestOpt) (io.ReadWriteCloser, error)
+	DoRaw(ctx context.Context, method string, uri string, opts ...RequestOpt) (net.Conn, error)
 }
 ```
 
