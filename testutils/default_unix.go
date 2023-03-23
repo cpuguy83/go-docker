@@ -7,11 +7,11 @@ import (
 )
 
 // NewDefaultTestTransport creates a default test transport
-func NewDefaultTestTransport(t *testing.T) (*Transport, error) {
+func NewDefaultTestTransport(t *testing.T, noTap bool) (*Transport, error) {
 	tr, err := transport.DefaultTransport()
 	if err != nil {
 		return nil, err
 	}
 
-	return NewTransport(t, tr), nil
+	return NewTransport(t, tr, noTap), nil
 }

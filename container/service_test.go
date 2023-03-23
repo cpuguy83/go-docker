@@ -27,11 +27,15 @@ func negoiateTestAPIVersion(t testing.TB, tr transport.Doer) {
 	})
 }
 
-func newTestService(t *testing.T, ctx context.Context) (*Service, context.Context) {
-	tr, _ := testutils.NewDefaultTestTransport(t)
+func newTestServiceNoTap(t *testing.T, ctx context.Context, noTap bool) (*Service, context.Context) {
+	tr, _ := testutils.NewDefaultTestTransport(t, noTap)
 	if version.APIVersion(ctx) == "" {
 		negoiateTestAPIVersion(t, tr)
 		ctx = version.WithAPIVersion(ctx, negotiatedAPIVersion)
 	}
 	return NewService(tr), ctx
+}
+
+func newTestService(t *testing.T, ctx context.Context) (*Service, context.Context) {
+	return newTestServiceNoTap(t, ctx, true)
 }

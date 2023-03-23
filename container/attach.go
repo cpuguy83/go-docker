@@ -105,7 +105,7 @@ func handleAttach(ctx context.Context, tr transport.Doer, name string, cfg Attac
 		return nil
 	}
 
-	rwc, err := tr.DoRaw(ctx, http.MethodPost, version.Join(ctx, "/containers/"+name+"/attach"), withAttachRequest)
+	rwc, err := tr.DoRaw(ctx, http.MethodPost, version.Join(ctx, "/containers/"+name+"/attach"), withAttachRequest, transport.WithUpgrade("tcp"))
 	if err != nil {
 		return nil, err
 	}

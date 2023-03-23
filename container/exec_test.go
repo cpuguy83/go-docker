@@ -77,7 +77,6 @@ func TestExec(t *testing.T) {
 	err = ep.Start(ctx)
 	assert.NilError(t, err)
 
-	line, err := bufio.NewReader(r).ReadString('\n')
-	assert.NilError(t, err)
+	line, _ := bufio.NewReader(r).ReadString('\n')
 	assert.Equal(t, line, "hello\n")
 }

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"path"
 	"strconv"
@@ -42,7 +42,7 @@ func (m *mockDoer) Do(ctx context.Context, method string, uri string, opts ...tr
 	return h(&req), nil
 }
 
-func (m *mockDoer) DoRaw(ctx context.Context, method string, uri string, opts ...transport.RequestOpt) (io.ReadWriteCloser, error) {
+func (m *mockDoer) DoRaw(ctx context.Context, method string, uri string, opts ...transport.RequestOpt) (net.Conn, error) {
 	return nil, errors.New("not supported")
 }
 

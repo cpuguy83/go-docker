@@ -185,7 +185,7 @@ func (e *ExecProcess) Start(ctx context.Context, opts ...ExecStartOption) error 
 		return nil
 	}
 
-	rwc, err := e.tr.DoRaw(ctx, http.MethodPost, version.Join(ctx, "/exec/"+e.id+"/start"), httputil.WithJSONBody(apiExecStartConfig{}))
+	rwc, err := e.tr.DoRaw(ctx, http.MethodPost, version.Join(ctx, "/exec/"+e.id+"/start"), httputil.WithJSONBody(apiExecStartConfig{}), transport.WithUpgrade("tcp"))
 	if err != nil {
 		return err
 	}

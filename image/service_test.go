@@ -8,7 +8,7 @@ import (
 )
 
 func newTestService(t *testing.T) *Service {
-	tr, err := testutils.NewDefaultTestTransport(t)
+	tr, err := testutils.NewDefaultTestTransport(t, true)
 	assert.NilError(t, err)
 	return NewService(tr)
 }

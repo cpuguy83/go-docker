@@ -2,11 +2,10 @@ package transport
 
 import (
 	"bufio"
-	"io"
 	"net"
 )
 
-func newHijackedConn(conn net.Conn, buf *bufio.Reader) io.ReadWriteCloser {
+func newHijackedConn(conn net.Conn, buf *bufio.Reader) net.Conn {
 	if buf.Buffered() == 0 {
 		buf.Reset(nil)
 		return conn
@@ -23,7 +22,7 @@ func newHijackedConn(conn net.Conn, buf *bufio.Reader) io.ReadWriteCloser {
 
 type hijackConn struct {
 	net.Conn
-	buf io.Reader
+	buf *bufio.Reader
 }
 
 func (c *hijackConn) Read(p []byte) (int, error) {
