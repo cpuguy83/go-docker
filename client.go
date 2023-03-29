@@ -45,3 +45,8 @@ func WithTransport(tr transport.Doer) NewClientOption {
 		cfg.Transport = tr
 	}
 }
+
+// Transport returns the transport used by the client.
+func (c *Client) Transport() transport.Doer {
+	return c.tr
+}
