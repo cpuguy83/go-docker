@@ -21,7 +21,7 @@ func TestDial(t *testing.T) {
 
 	ctx := context.Background()
 
-	c, err := client.New(ctx, "", FromDocker(tr)...)
+	c, err := NewClient(ctx, tr)
 	if err != nil {
 		t.Fatal(err)
 	}

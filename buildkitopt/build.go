@@ -24,7 +24,7 @@ import (
 // to include WithSessionDialer and WithGRPCDialer automatically in addition to
 // the opts provided.
 func NewClient(ctx context.Context, tr transport.Doer, opts ...client.ClientOpt) (*client.Client, error) {
-	return client.New(ctx, "", append(opts, FromDocker(tr)...))
+	return client.New(ctx, "", append(opts, FromDocker(tr)...)...)
 }
 
 // FromDocker is a convenience function that returns a slice of ClientOpts that can be used to create a client for the buildkit GRPC and session APIs provided by dockerd.
