@@ -45,6 +45,7 @@ func UnixSocketTransport(sock string, opts ...ConnectionOption) (*Transport, err
 		c: &http.Client{
 			Transport: t,
 		},
-		dial: dial,
+		dial:      dial,
+		transform: go120Dot6HostTransform(sock),
 	}, nil
 }
