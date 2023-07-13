@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -31,10 +32,11 @@ type RequestOpt func(*http.Request) error
 //
 // Create a transport from one of the available helper functions.
 type Transport struct {
-	c      *http.Client
-	dial   func(context.Context) (net.Conn, error)
-	host   string
-	scheme string
+	c         *http.Client
+	dial      func(context.Context) (net.Conn, error)
+	host      string
+	scheme    string
+	transform func(*http.Request)
 }
 
 // Do implements the Doer.Do interface
@@ -49,6 +51,10 @@ func (t *Transport) Do(ctx context.Context, method, uri string, opts ...RequestO
 		if err := o(req); err != nil {
 			return nil, err
 		}
+	}
+
+	if t.transform != nil {
+		t.transform(req)
 	}
 	resp, err := t.c.Do(req)
 	if err != nil {
@@ -69,6 +75,10 @@ func (t *Transport) DoRaw(ctx context.Context, method, uri string, opts ...Reque
 		if err := o(req); err != nil {
 			return nil, err
 		}
+	}
+
+	if t.transform != nil {
+		t.transform(req)
 	}
 
 	conn, err := t.dial(ctx)
@@ -169,5 +179,17 @@ func WithAddHeaders(headers map[string][]string) RequestOpt {
 			}
 		}
 		return nil
+	}
+}
+
+// go1.20.6 introduced a breaking change which makes paths an invalid value for a host header
+// This is problematic for us because we use the path as the URI for the request.
+// If req.Host is not set OR is the same as the socket path (basically unmodified by something else) then we can rewrite it.
+// If its anything else then this was changed by something else and we should not touch it.
+func go120Dot6HostTransform(sock string) func(req *http.Request) {
+	return func(req *http.Request) {
+		if req.Host == "" || req.Host == sock {
+			req.Host = strings.Replace(sock, "/", "_", -1)
+		}
 	}
 }

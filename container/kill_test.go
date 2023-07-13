@@ -17,10 +17,10 @@ func TestKill(t *testing.T) {
 	assert.Check(t, errdefs.IsNotFound(err), err)
 
 	c, err := s.Create(ctx, "busybox:latest", WithCreateName(strings.ToLower(t.Name())), WithCreateTTY, WithCreateCmd("/bin/sh", "-c", "trap 'exit 0' SIGTERM; while true; do usleep 100000; done"))
+	assert.NilError(t, err)
 	defer func() {
 		assert.Check(t, s.Remove(ctx, c.ID(), WithRemoveForce))
 	}()
-	assert.NilError(t, err)
 	assert.NilError(t, c.Start(ctx))
 
 	err = c.Kill(ctx, WithKillSignal("FAKESIG"))
