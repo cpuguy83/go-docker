@@ -94,9 +94,11 @@ func (t *Transport) DoRaw(ctx context.Context, method, uri string, opts ...Reque
 	}
 
 	cc := httputil.NewClientConn(conn, nil)
-	if retErr != nil {
-		cc.Close()
-	}
+	defer func() {
+		if retErr != nil {
+			cc.Close()
+		}
+	}()
 
 	resp, err := cc.Do(req)
 	if err != httputil.ErrPersistEOF {
