@@ -3,7 +3,7 @@ module github.com/cpuguy83/go-docker/buildkitopt
 go 1.20
 
 require (
-	github.com/cpuguy83/go-docker v0.1.0
+	github.com/cpuguy83/go-docker v0.1.2
 	github.com/moby/buildkit v0.11.4
 )
 
