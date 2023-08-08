@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cpuguy83/go-docker/testutils/assert"
 	"github.com/cpuguy83/go-docker/transport"
+	"gotest.tools/v3/assert"
 )
 
 // NewDefaultTestTransport creates a default test transport
