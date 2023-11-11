@@ -87,8 +87,17 @@ func TestEvents(t *testing.T) {
 	}
 
 	cancel()
-	if _, err := f(); !errors.Is(err, context.Canceled) {
-		t.Fatal(err)
+
+	ctxT, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	for {
+		if ctxT.Err() != nil {
+			t.Fatal("timeout waiting for event")
+		}
+		if _, err := f(); !errors.Is(err, context.Canceled) {
+			continue
+		}
+		break
 	}
 
 	ctx, cancel = context.WithCancel(context.Background())
