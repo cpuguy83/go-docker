@@ -5,13 +5,16 @@ import (
 	"testing"
 
 	"github.com/cpuguy83/go-docker/errdefs"
+	"github.com/cpuguy83/go-docker/testutils"
 	"gotest.tools/v3/assert"
 )
 
 func TestStop(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
-	c := s.NewContainer(ctx, "notexist")
+	c := s.NewContainer(ctx, "notexist"+testutils.GenerateRandomString())
 	err := c.Stop(ctx)
 	assert.Assert(t, errdefs.IsNotFound(err), err)
 

@@ -6,10 +6,13 @@ import (
 	"testing"
 
 	"github.com/cpuguy83/go-docker/errdefs"
+	"github.com/cpuguy83/go-docker/testutils"
 	"gotest.tools/v3/assert"
 )
 
 func TestCreate(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "")
@@ -21,7 +24,7 @@ func TestCreate(t *testing.T) {
 		}
 	}
 
-	name := strings.ToLower(t.Name())
+	name := strings.ToLower(t.Name()) + testutils.GenerateRandomString()
 	c, err = s.Create(ctx, "busybox:latest", WithCreateName(name))
 	assert.NilError(t, err)
 	defer func() {

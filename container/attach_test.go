@@ -11,6 +11,8 @@ import (
 )
 
 func TestContainerAttachTTY(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx,
@@ -50,6 +52,8 @@ func TestContainerAttachTTY(t *testing.T) {
 }
 
 func TestContainerAttachNoTTY(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx,

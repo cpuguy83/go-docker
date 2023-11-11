@@ -17,6 +17,11 @@ type ImageRemoveConfig struct {
 	Force bool
 }
 
+func WithRemoveForce(cfg *ImageRemoveConfig) error {
+	cfg.Force = true
+	return nil
+}
+
 // ImageRemoveOption is a functional option for configuring an image remove.
 type ImageRemoveOption func(config *ImageRemoveConfig) error
 
