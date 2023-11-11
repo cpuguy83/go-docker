@@ -43,13 +43,26 @@ func TestEvents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	beforePull := time.Now()
+
 	if err := image.NewService(tr).Pull(ctx, remote); err != nil {
 		t.Fatal(err)
 	}
 
+	afterPull := time.Now()
+
 	ev, err := f()
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if !ev.Time.After(beforePull) {
+		t.Fatalf("expected event time to be after %v, got %v", beforePull, ev.Time)
+	}
+
+	if !ev.Time.Before(afterPull) {
+		t.Fatalf("expected event time to be before %v, got %v", afterPull, ev.Time)
 	}
 
 	if ev.Type != "image" {
