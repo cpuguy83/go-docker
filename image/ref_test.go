@@ -44,6 +44,8 @@ func TestParseRef(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.ref, func(t *testing.T) {
+			t.Parallel()
+
 			r, err := ParseRef(tc.ref)
 			if tc.errCheck == nil {
 				tc.errCheck = func(err error) bool {

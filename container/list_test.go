@@ -9,6 +9,8 @@ import (
 )
 
 func TestList(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
@@ -40,6 +42,8 @@ func TestList(t *testing.T) {
 }
 
 func TestListLimit(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 	n := 4
 

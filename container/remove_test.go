@@ -5,13 +5,16 @@ import (
 	"testing"
 
 	"github.com/cpuguy83/go-docker/errdefs"
+	"github.com/cpuguy83/go-docker/testutils"
 	"gotest.tools/v3/assert"
 )
 
 func TestRemove(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
-	err := s.Remove(ctx, "notexist")
+	err := s.Remove(ctx, "notexist"+testutils.GenerateRandomString())
 	assert.Check(t, errdefs.IsNotFound(err))
 
 	c, err := s.Create(ctx, "busybox:latest")

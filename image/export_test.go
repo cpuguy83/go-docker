@@ -10,6 +10,8 @@ import (
 )
 
 func TestExport(t *testing.T) {
+	t.Parallel()
+
 	s := newTestService(t)
 
 	ctx := context.Background()

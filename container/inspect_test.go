@@ -8,13 +8,16 @@ import (
 	"gotest.tools/v3/assert/cmp"
 
 	"github.com/cpuguy83/go-docker/errdefs"
+	"github.com/cpuguy83/go-docker/testutils"
 	"gotest.tools/v3/assert"
 )
 
 func TestInspect(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
-	_, err := s.Inspect(ctx, "notExist")
+	_, err := s.Inspect(ctx, "notExist"+testutils.GenerateRandomString())
 	assert.Check(t, errdefs.IsNotFound(err), err)
 
 	name := strings.ToLower(t.Name())

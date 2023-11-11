@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -14,6 +13,8 @@ import (
 )
 
 func TestExec(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
 	c := s.NewContainer(ctx, "notexist")
@@ -68,7 +69,7 @@ func TestExec(t *testing.T) {
 	defer r.Close()
 
 	ep, err = c.Exec(ctx, WithExecCmd("cat"), func(cfg *ExecConfig) {
-		cfg.Stdin = ioutil.NopCloser(strings.NewReader("hello\n"))
+		cfg.Stdin = io.NopCloser(strings.NewReader("hello\n"))
 		cfg.Stdout = w
 		cfg.Stderr = w
 	})

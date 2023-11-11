@@ -12,9 +12,11 @@ import (
 )
 
 func TestWait(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
-	c := s.NewContainer(ctx, "notexist")
+	c := s.NewContainer(ctx, "notexist"+testutils.GenerateRandomString())
 	_, err := c.Wait(ctx)
 	assert.Assert(t, errdefs.IsNotFound(err), err)
 

@@ -23,6 +23,8 @@ func waitForContainerExit(ctx context.Context, t *testing.T, c *Container) {
 }
 
 func TestStdoutLogs(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
@@ -53,6 +55,8 @@ func TestStdoutLogs(t *testing.T) {
 }
 
 func TestStderrLogs(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
@@ -83,6 +87,8 @@ func TestStderrLogs(t *testing.T) {
 }
 
 func TestStdoutStderrLogs(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
@@ -111,6 +117,8 @@ func TestStdoutStderrLogs(t *testing.T) {
 }
 
 func TestLogsSince(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
@@ -153,6 +161,8 @@ func TestLogsSince(t *testing.T) {
 }
 
 func TestLogsUntil(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",
@@ -194,6 +204,8 @@ func TestLogsUntil(t *testing.T) {
 }
 
 func TestLogsTimestamps(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
 	c, err := s.Create(ctx, "busybox:latest",

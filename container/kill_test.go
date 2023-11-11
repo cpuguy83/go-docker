@@ -6,14 +6,17 @@ import (
 	"testing"
 
 	"github.com/cpuguy83/go-docker/errdefs"
+	"github.com/cpuguy83/go-docker/testutils"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/cmp"
 )
 
 func TestKill(t *testing.T) {
+	t.Parallel()
+
 	s, ctx := newTestService(t, context.Background())
 
-	err := s.Kill(ctx, "notexist")
+	err := s.Kill(ctx, "notexist"+testutils.GenerateRandomString())
 	assert.Check(t, errdefs.IsNotFound(err), err)
 
 	c, err := s.Create(ctx, "busybox:latest", WithCreateName(strings.ToLower(t.Name())), WithCreateTTY, WithCreateCmd("/bin/sh", "-c", "trap 'exit 0' SIGTERM; while true; do usleep 100000; done"))

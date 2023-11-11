@@ -10,6 +10,8 @@ import (
 )
 
 func TestPull(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestService(t)
 
 	ctx := context.Background()
