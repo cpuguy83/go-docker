@@ -37,7 +37,7 @@ func TestExport(t *testing.T) {
 
 		t.Log(hdr.Name)
 
-		if hdr.Name == "c28b9c2faac407005d4d657e49f372fb3579a47dd4e4d87d13e29edd1c912d5c/VERSION" {
+		if hdr.Name == "manifest.json" {
 			found = true
 			break
 		}
