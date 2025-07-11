@@ -45,6 +45,10 @@ func (s *Service) Create(ctx context.Context, img string, opts ...CreateOption) 
 		o(&c)
 	}
 
+	if c.Spec.Config.Image == "" {
+		c.Spec.Config.Image = img
+	}
+
 	withName := func(req *http.Request) error { return nil }
 	if c.Name != "" {
 		withName = func(req *http.Request) error {
