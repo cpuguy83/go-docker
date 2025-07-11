@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -31,6 +31,56 @@ type Spec struct {
 func WithCreatePlatform(platform string) CreateOption {
 	return func(cfg *CreateConfig) {
 		cfg.Platform = platform
+	}
+}
+
+// WithCreateHostConfigOpt allows you to set a function that modifies the
+// HostConfig of the container being created.
+func WithCreateHostConfigOpt(f func(*containerapi.HostConfig)) CreateOption {
+	return func(cfg *CreateConfig) {
+		f(&cfg.Spec.HostConfig)
+	}
+}
+
+// WithCreateNetworkConfigOpt allows you to set a function that modifies the
+// NetworkingConfig of the container being created.
+func WithCreateNetworkConfigOpt(f func(*containerapi.NetworkingConfig)) CreateOption {
+	return func(cfg *CreateConfig) {
+		f(&cfg.Spec.NetworkConfig)
+	}
+}
+
+// WithCreateConfigOpt allows you to set a function that modifies the
+// Config of the container being created.
+func WithCreateConfigOpt(f func(*containerapi.Config)) CreateOption {
+	return func(cfg *CreateConfig) {
+		f(&cfg.Spec.Config)
+	}
+}
+
+// WithCreatePortForwarding adds the specified port forward to the container's
+// configuration.
+// In this case the 'port' is the container port to forward to the host.
+func WithCreatePortForwarding(proto string, port int, hostBindings ...containerapi.PortBinding) CreateOption {
+	return func(cfg *CreateConfig) {
+		portSpec := fmt.Sprintf("%d/%s", port, proto)
+
+		WithCreateConfigOpt(func(c *containerapi.Config) {
+			if c.ExposedPorts == nil {
+				c.ExposedPorts = map[string]struct{}{}
+			}
+			c.ExposedPorts[portSpec] = struct{}{}
+		})(cfg)
+
+		WithCreateHostConfigOpt(func(hc *containerapi.HostConfig) {
+			bindings := hc.PortBindings
+			if bindings == nil {
+				bindings = containerapi.PortMap{}
+			}
+
+			bindings[fmt.Sprintf("%d/%s", port, proto)] = hostBindings
+			hc.PortBindings = bindings
+		})(cfg)
 	}
 }
 
@@ -78,7 +128,7 @@ func (s *Service) Create(ctx context.Context, img string, opts ...CreateOption) 
 	}
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errdefs.Wrap(err, "error reading response body")
 	}
