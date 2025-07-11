@@ -43,7 +43,6 @@ func TestCreate(t *testing.T) {
 		t.Parallel()
 
 		c, err := s.Create(ctx, "busybox:latest",
-			WithCreateName(name),
 			WithCreatePortForwarding("tcp", 80),
 			WithCreatePortForwarding("udp", 81),
 			WithCreatePortForwarding("udp", 82, containerapi.PortBinding{HostIP: "127.0.0.1"}),
